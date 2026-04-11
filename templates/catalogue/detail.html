@@ -36,6 +36,9 @@
                         Loading viewer shell...
                     </div>
                 </div>
+                <div class="action-row">
+                    <button type="button" id="viewer-rotate-toggle">Enable auto-rotate</button>
+                </div>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <strong>{{ selected_variant.name }}</strong>
@@ -135,15 +138,27 @@
         const root = document.getElementById("figurine-viewer");
         const stage = document.getElementById("viewer-stage");
         const fallback = document.getElementById("viewer-fallback");
+        const rotateToggle = document.getElementById("viewer-rotate-toggle");
 
         const variantName = root.dataset.variantName;
         const modelPath = root.dataset.modelPath;
         const assetUrl = `/static/${modelPath.replace(/^\/+/, "")}`;
+        let autoRotate = false;
 
         const fallbackText = (message) => {
             fallback.style.display = "block";
             fallback.textContent = message || `${variantName} is loading in the updated viewer shell.`;
         };
+
+        const syncRotateLabel = () => {
+            rotateToggle.textContent = autoRotate ? "Disable auto-rotate" : "Enable auto-rotate";
+        };
+
+        syncRotateLabel();
+        rotateToggle.addEventListener("click", () => {
+            autoRotate = !autoRotate;
+            syncRotateLabel();
+        });
 
         try {
             const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -257,7 +272,9 @@
             const animate = () => {
                 const elapsed = clock.getElapsedTime();
                 if (loadedModel) {
-                    modelAnchor.rotation.y = elapsed * 0.24;
+                    if (autoRotate) {
+                        modelAnchor.rotation.y = elapsed * 0.24;
+                    }
                     modelAnchor.position.y = Math.sin(elapsed * 1.1) * 0.025;
                 }
                 halo.rotation.z = elapsed * 0.18;
