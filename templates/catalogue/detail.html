@@ -95,7 +95,6 @@
         const stage = document.getElementById("viewer-stage");
         const fallback = document.getElementById("viewer-fallback");
 
-        const sceneType = root.dataset.sceneType;
         const color = root.dataset.color || "#7B5EA7";
         const variantName = root.dataset.variantName;
         const modelPath = root.dataset.modelPath;
@@ -106,8 +105,8 @@
         };
 
         try {
-            const THREE = await import("https://unpkg.com/three@0.164.1/build/three.module.js");
-            const { GLTFLoader } = await import("https://unpkg.com/three@0.164.1/examples/jsm/loaders/GLTFLoader.js");
+            const THREE = await import("https://unpkg.com/three@0.164.1/build/three.module.js?module");
+            const { GLTFLoader } = await import("https://unpkg.com/three@0.164.1/examples/jsm/loaders/GLTFLoader.js?module");
 
             const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -210,11 +209,13 @@
             animate();
         } catch (error) {
             fallbackText();
+            const errorMessage = error && error.message ? error.message : "Unknown loader error";
             stage.innerHTML = `
                 <div style="display:grid;place-items:center;height:100%;min-height:300px;border:1px solid rgba(255,255,255,0.08);border-radius:18px;background:rgba(255,255,255,0.03);">
                     <div style="text-align:center;padding:24px;">
                         <strong>Model viewer fallback active</strong>
                         <p style="color:#cdbfae;">The GLB at <code>${assetUrl}</code> could not be loaded, so the page is showing a graceful placeholder instead.</p>
+                        <p style="color:#cdbfae;">Reason: ${errorMessage}</p>
                     </div>
                 </div>
             `;
