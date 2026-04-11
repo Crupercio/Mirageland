@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ character.name }} | Mirageland{% endblock %}
 
@@ -34,6 +35,7 @@
                 data-character-name="{{ character.name }}"
                 data-variant-name="{{ selected_variant.name }}"
                 data-model-path="{{ selected_variant.model_file_path }}"
+                data-model-url="{% static selected_variant.model_file_path %}"
                 data-color="{{ character.color_hex }}"
             >
                 <div id="viewer-stage" style="height: 100%; min-height: 700px; border-radius: 20px;"></div>
@@ -165,7 +167,7 @@
 
         const variantName = root.dataset.variantName;
         const modelPath = root.dataset.modelPath;
-        const assetUrl = `/static/${modelPath.replace(/^\/+/, "")}`;
+        const assetUrl = root.dataset.modelUrl;
 
         let autoRotate = false;
         let renderMode = "normal";
