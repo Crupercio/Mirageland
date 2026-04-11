@@ -293,6 +293,7 @@
             justify-content: space-between;
             align-items: center;
             gap: 18px;
+            overflow: visible;
         }
 
         .viewer-controls {
@@ -324,12 +325,14 @@
 
         .viewer-popover-wrap {
             position: relative;
+            overflow: visible;
         }
 
         .viewer-popover {
             position: absolute;
             top: calc(100% + 12px);
-            right: 0;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 10;
             width: min(320px, 78vw);
             padding: 16px;
@@ -389,6 +392,7 @@
             flex-wrap: wrap;
             gap: 10px;
             justify-content: flex-start;
+            align-items: center;
         }
 
         .viewer-mode-group,
@@ -473,6 +477,10 @@
             .split { flex-direction: column; }
             .shelf-grid { grid-template-columns: 1fr; }
             .viewer-header { align-items: flex-start; }
+            .viewer-popover {
+                left: 0;
+                transform: none;
+            }
         }
     </style>
 </head>

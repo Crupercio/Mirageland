@@ -23,7 +23,7 @@
                                 <strong>Viewer Controls</strong>
                                 <button type="button" id="viewer-info-close" class="viewer-popover-close" aria-label="Close viewer help">x</button>
                             </div>
-                            <p class="muted">Drag to orbit the figurine, use the mouse wheel to zoom, and use the render buttons below to switch between normal, unlit, and textured wireframe-overlay views.</p>
+                            <p class="muted">Drag to orbit. Hold <strong>Shift</strong> while dragging to pan. Use the mouse wheel to zoom, and use the buttons below for render modes, rotation, and reset.</p>
                         </div>
                     </div>
                 </div>
@@ -166,14 +166,24 @@
         const variantName = root.dataset.variantName;
         const modelPath = root.dataset.modelPath;
         const assetUrl = `/static/${modelPath.replace(/^\/+/, "")}`;
+
         let autoRotate = false;
         let renderMode = "normal";
         let isDragging = false;
         let dragStartX = 0;
-        let modelRotationY = 0;
-        let cameraDistance = 8;
+        let dragStartY = 0;
+        let orbitYaw = 0;
+        let orbitPitch = -0.08;
+        let cameraDistance = 11.2;
         let cameraHeight = 1.5;
         let cameraLookY = 1.2;
+        let panOffsetX = 0;
+        let panOffsetY = 0;
+        let defaultCameraDistance = 11.2;
+        let defaultCameraHeight = 1.7;
+        let defaultLookY = 1.2;
+        const panSensitivity = 0.004;
+        const orbitSensitivity = 0.007;
 
         const meshEntries = [];
         let modelAnchor = null;
@@ -236,17 +246,24 @@
             if (!camera) {
                 return;
             }
-            camera.position.set(0, cameraHeight, cameraDistance);
-            lookTarget = new THREE.Vector3(0, cameraLookY, 0);
+            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.55, 0.55);
+            const x = Math.sin(orbitYaw) * Math.cos(pitch) * cameraDistance;
+            const y = Math.sin(pitch) * cameraDistance + cameraHeight;
+            const z = Math.cos(orbitYaw) * Math.cos(pitch) * cameraDistance;
+            camera.position.set(x + panOffsetX, y + panOffsetY, z);
+            lookTarget = new THREE.Vector3(panOffsetX, cameraLookY + panOffsetY, 0);
             camera.lookAt(lookTarget);
         };
 
         const resetViewer = () => {
             autoRotate = false;
-            modelRotationY = 0;
-            cameraDistance = 8;
-            cameraHeight = 1.5;
-            cameraLookY = 1.2;
+            orbitYaw = 0;
+            orbitPitch = -0.08;
+            cameraDistance = defaultCameraDistance;
+            cameraHeight = defaultCameraHeight;
+            cameraLookY = defaultLookY;
+            panOffsetX = 0;
+            panOffsetY = 0;
             if (modelAnchor) {
                 modelAnchor.rotation.set(0, 0, 0);
                 modelAnchor.position.y = 0;
@@ -258,6 +275,7 @@
 
         syncRotateLabel();
         syncModeButtons();
+
         infoToggle.addEventListener("click", (event) => {
             event.stopPropagation();
             toggleInfoPopover();
@@ -268,6 +286,7 @@
                 closeInfoPopover();
             }
         });
+
         rotateToggle.addEventListener("click", () => {
             autoRotate = !autoRotate;
             syncRotateLabel();
@@ -349,8 +368,11 @@
                 cameraLookY = framedCenter.y + framedSize.y * 0.08;
                 const fitHeight = framedSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
                 const fitWidth = (framedSize.x / camera.aspect) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
-                cameraDistance = Math.max(fitHeight, fitWidth) * 1.55 + framedSize.z * 0.45;
-                cameraHeight = cameraLookY + 0.14;
+                cameraDistance = Math.max(fitHeight, fitWidth) * 1.9 + framedSize.z * 0.7;
+                cameraHeight = cameraLookY + framedSize.y * 0.02;
+                defaultCameraDistance = cameraDistance;
+                defaultCameraHeight = cameraHeight;
+                defaultLookY = cameraLookY;
                 updateCamera();
             };
 
@@ -361,6 +383,7 @@
             stage.addEventListener("pointerdown", (event) => {
                 isDragging = true;
                 dragStartX = event.clientX;
+                dragStartY = event.clientY;
                 stage.setPointerCapture(event.pointerId);
             });
 
@@ -369,9 +392,18 @@
                     return;
                 }
                 const deltaX = event.clientX - dragStartX;
+                const deltaY = event.clientY - dragStartY;
                 dragStartX = event.clientX;
-                modelRotationY += deltaX * 0.01;
-                modelAnchor.rotation.y = modelRotationY;
+                dragStartY = event.clientY;
+
+                if (event.shiftKey) {
+                    panOffsetX += deltaX * panSensitivity;
+                    panOffsetY -= deltaY * panSensitivity;
+                } else {
+                    orbitYaw += deltaX * orbitSensitivity;
+                    orbitPitch -= deltaY * orbitSensitivity;
+                }
+                updateCamera();
             });
 
             const stopDrag = (event) => {
@@ -392,7 +424,7 @@
                 "wheel",
                 (event) => {
                     event.preventDefault();
-                    cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.005, 4.8, 12);
+                    cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.008, 5.2, 17);
                     updateCamera();
                 },
                 { passive: false }
@@ -451,9 +483,8 @@
                 const elapsed = clock.getElapsedTime();
                 if (loadedModel && modelAnchor) {
                     if (autoRotate && !isDragging) {
-                        modelRotationY += 0.005;
+                        orbitYaw += 0.005;
                     }
-                    modelAnchor.rotation.y = modelRotationY;
                     modelAnchor.position.y = Math.sin(elapsed * 1.1) * 0.02;
                 }
                 halo.rotation.z = elapsed * 0.18;
