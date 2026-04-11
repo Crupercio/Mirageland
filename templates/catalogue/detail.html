@@ -90,7 +90,18 @@
 </main>
 
 {% if selected_variant %}
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
     <script type="module">
+        import * as THREE from "three";
+        import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
         const root = document.getElementById("figurine-viewer");
         const stage = document.getElementById("viewer-stage");
         const fallback = document.getElementById("viewer-fallback");
@@ -105,9 +116,6 @@
         };
 
         try {
-            const THREE = await import("https://unpkg.com/three@0.164.1/build/three.module.js?module");
-            const { GLTFLoader } = await import("https://unpkg.com/three@0.164.1/examples/jsm/loaders/GLTFLoader.js?module");
-
             const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio || 1);
             renderer.outputColorSpace = THREE.SRGBColorSpace;
