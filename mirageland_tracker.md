@@ -223,5 +223,5 @@ Push after production config, healthcheck, and deployment docs are verified loca
 - commit: `a682418`
 - `2026-04-11`: Phase 7 MVP catalogue and room expansion pushed to GitHub
 - commit: `af8d46b`
-- `2026-04-11`: Phase 8 deployment and staging prep prepared for checkpoint
-- pending commit
+- `2026-04-11`: Phase 8 deployment and staging prep pushed to GitHub
+- commit: `b39346b`
