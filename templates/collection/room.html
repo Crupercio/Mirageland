@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Display Room | Mirageland{% endblock %}
+
+{% block content %}
+<main class="grid two-col">
+    <section class="grid">
+        <article class="panel">
+            <span class="pill">Warm Library</span>
+            <h1>{{ collector.username }}'s Display Room</h1>
+            <p class="muted">
+                This is the first persistent shelf loop. Place an owned Sora variant
+                into a slot, save it, and the room will keep that arrangement.
+            </p>
+            <form method="post" action="{% url 'collection:room-toggle-visibility' %}" style="margin-top: 16px;">
+                {% csrf_token %}
+                <input type="hidden" name="is_public" value="{% if room.is_public %}false{% else %}true{% endif %}">
+                <button type="submit">
+                    {% if room.is_public %}
+                        Make room private
+                    {% else %}
+                        Make room public
+                    {% endif %}
+                </button>
+            </form>
+            <p class="muted">Current visibility: {% if room.is_public %}Public{% else %}Private{% endif %}</p>
+        </article>
+
+        <article class="panel">
+            <h2>Shelf Layout</h2>
+            <div class="grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+                {% for slot in room.slots.all %}
+                    <section class="panel" style="padding: 18px;">
+                        <strong>Slot {{ slot.slot_index }}</strong>
+                        {% if slot.owned_variant %}
+                            <p>{{ slot.owned_variant.variant.name }}</p>
+                            <p class="muted">{{ slot.owned_variant.variant.short_description }}</p>
+                        {% else %}
+                            <p class="muted">Empty slot</p>
+                        {% endif %}
+
+                        <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
+                            {% csrf_token %}
+                            <label class="muted" for="owned_variant_{{ slot.slot_index }}">Choose variant</label>
+                            <select
+                                id="owned_variant_{{ slot.slot_index }}"
+                                name="owned_variant_id"
+                                style="border-radius: 14px; padding: 10px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line);"
+                            >
+                                <option value="">Clear slot</option>
+                                {% for owned_variant in owned_variants %}
+                                    <option
+                                        value="{{ owned_variant.id }}"
+                                        {% if slot.owned_variant and slot.owned_variant.id == owned_variant.id %}selected{% endif %}
+                                    >
+                                        {{ owned_variant.variant.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit">Save slot</button>
+                        </form>
+                    </section>
+                {% endfor %}
+            </div>
+        </article>
+    </section>
+
+    <aside class="grid">
+        <section class="panel">
+            <h2>Owned Variants</h2>
+            <div class="grid">
+                {% for owned_variant in owned_variants %}
+                    <article class="panel" style="padding: 18px;">
+                        <strong>{{ owned_variant.variant.name }}</strong>
+                        <p class="muted">{{ owned_variant.variant.short_description }}</p>
+                    </article>
+                {% empty %}
+                    <p class="muted">Complete a quest to unlock your first figurine.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Next Step</h2>
+            <p class="muted">
+                Once at least one figurine is placed here, the “Shelf Memory” quest
+                can be completed in the quest hub.
+            </p>
+            <p>
+                <a class="pill gold" href="{% url 'quests:hub' %}">Return to quest hub</a>
+            </p>
+        </section>
+    </aside>
+</main>
+{% endblock %}

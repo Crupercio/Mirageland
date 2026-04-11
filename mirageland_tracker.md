@@ -120,12 +120,12 @@ Let a player unlock a figurine through a simple quest flow.
 
 ### Tasks
 
-- [ ] Create simple quest model flow
-- [ ] Add first quest chain
-- [ ] Add simple reward logic
-- [ ] Add one currency if needed
-- [ ] Award ownership on completion
-- [ ] Verify repeat and edge-case behavior
+- [x] Create simple quest model flow
+- [x] Add first quest chain
+- [x] Add simple reward logic
+- [x] Add one currency if needed
+- [x] Award ownership on completion
+- [x] Verify repeat and edge-case behavior
 
 ### GitHub Checkpoint
 
@@ -139,11 +139,11 @@ Show the first collectible in a polished character page.
 
 ### Tasks
 
-- [ ] Create character detail page
-- [ ] Add Three.js viewer shell
-- [ ] Load placeholder or real model
-- [ ] Add graceful loading and error states
-- [ ] Connect variant switching
+- [x] Create character detail page
+- [x] Add Three.js viewer shell
+- [x] Load placeholder or real model
+- [x] Add graceful loading and error states
+- [x] Connect variant switching
 
 ### GitHub Checkpoint
 
@@ -157,12 +157,12 @@ Let a player place an unlocked figurine onto a shelf and return later.
 
 ### Tasks
 
-- [ ] Create display room model
-- [ ] Create shelf slot model or layout system
-- [ ] Build room page
-- [ ] Save figurine placement
-- [ ] Reload saved placement
-- [ ] Add simple public/private room setting
+- [x] Create display room model
+- [x] Create shelf slot model or layout system
+- [x] Build room page
+- [x] Save figurine placement
+- [x] Reload saved placement
+- [x] Add simple public/private room setting
 
 ### GitHub Checkpoint
 
@@ -200,3 +200,5 @@ Push after each stable sub-milestone instead of waiting for the whole MVP to be 
 - commit: `1dc39dc`
 - `2026-04-11`: Phase 3 core catalogue and ownership models pushed to GitHub
 - commit: `bda3c3a`
+- `2026-04-11`: Phases 4-6 quest loop, viewer shell, and display room prepared for checkpoint
+- pending commit

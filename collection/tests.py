@@ -4,6 +4,7 @@ from django.test import TestCase
 from accounts.models import User
 from catalogue.models import Character, Variant, VariantRarity, VariantSceneType
 from collection.models import OwnedVariant
+from collection.services import ensure_display_room, place_owned_variant
 
 
 class OwnedVariantModelTests(TestCase):
@@ -31,3 +32,28 @@ class OwnedVariantModelTests(TestCase):
 
         with self.assertRaises(IntegrityError):
             OwnedVariant.objects.create(user=self.user, variant=self.variant)
+
+    def test_display_room_is_created_with_default_slots(self):
+        room = ensure_display_room(self.user)
+
+        self.assertEqual(room.theme_slug, "warm-library")
+        self.assertEqual(room.slots.count(), 6)
+
+    def test_placing_variant_moves_it_between_slots(self):
+        owned_variant = OwnedVariant.objects.create(user=self.user, variant=self.variant)
+        room = ensure_display_room(self.user)
+
+        place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant.id)
+        place_owned_variant(self.user, slot_index=3, owned_variant_id=owned_variant.id)
+
+        room.refresh_from_db()
+        self.assertIsNone(room.slots.get(slot_index=1).owned_variant)
+        self.assertEqual(room.slots.get(slot_index=3).owned_variant, owned_variant)
+
+    def test_room_visibility_can_be_updated(self):
+        room = ensure_display_room(self.user)
+        room.is_public = True
+        room.save(update_fields=["is_public"])
+
+        room.refresh_from_db()
+        self.assertTrue(room.is_public)

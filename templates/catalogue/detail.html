@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}{{ character.name }} | Mirageland{% endblock %}
+
+{% block content %}
+<main class="grid two-col">
+    <section class="grid">
+        <article class="panel">
+            <span class="pill">{{ character.archetype }}</span>
+            <h1>{{ character.name }}</h1>
+            <p class="muted">{{ character.short_description }}</p>
+            <p><em>"{{ character.lore_quote }}"</em></p>
+        </article>
+
+        <article class="panel">
+            <h2>Variant Collection</h2>
+            <div class="grid">
+                {% for variant in variants %}
+                    <a
+                        href="{% url 'catalogue:character-detail' character.slug %}?variant={{ variant.slug }}"
+                        class="panel"
+                        style="padding: 18px; {% if selected_variant and selected_variant.id == variant.id %}border-color: rgba(210, 156, 199, 0.6);{% endif %}"
+                    >
+                        <div style="display: flex; justify-content: space-between; gap: 16px; align-items: start;">
+                            <div>
+                                <strong>{{ variant.name }}</strong>
+                                <p class="muted">{{ variant.get_scene_type_display }} · {{ variant.get_rarity_display }}</p>
+                            </div>
+                            {% if variant.id in owned_variant_ids %}
+                                <span class="pill gold">Owned</span>
+                            {% else %}
+                                <span class="pill">Locked</span>
+                            {% endif %}
+                        </div>
+                        <p class="muted">{{ variant.short_description }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </article>
+    </section>
+
+    <aside class="grid">
+        <section class="panel">
+            <h2>Figurine Viewer</h2>
+            {% if selected_variant %}
+                <div
+                    id="figurine-viewer"
+                    class="panel"
+                    style="padding: 18px; min-height: 360px; position: relative; overflow: hidden; background: radial-gradient(circle at top, rgba(123, 94, 167, 0.28), rgba(6, 11, 21, 0.96));"
+                    data-character-name="{{ character.name }}"
+                    data-variant-name="{{ selected_variant.name }}"
+                    data-model-path="{{ selected_variant.model_file_path }}"
+                    data-scene-type="{{ selected_variant.scene_type }}"
+                    data-color="{{ character.color_hex }}"
+                >
+                    <div id="viewer-stage" style="height: 100%; min-height: 300px; border-radius: 18px;"></div>
+                    <div id="viewer-fallback" class="muted" style="position: absolute; left: 18px; bottom: 18px; max-width: 260px;">
+                        Loading viewer shell...
+                    </div>
+                </div>
+                <p class="muted">
+                    Selected: <strong>{{ selected_variant.name }}</strong><br>
+                    Model path: <code>{{ selected_variant.model_file_path }}</code>
+                </p>
+            {% else %}
+                <p class="muted">No variants are available for this character yet.</p>
+            {% endif %}
+        </section>
+
+        <section class="panel">
+            <h2>Collector Status</h2>
+            <p><strong>{{ collector.username }}</strong></p>
+            <p class="muted">Coins: {{ collector.coins }}</p>
+            <p class="muted">Owned variants for {{ character.name }}: {{ owned_variant_ids|length }}</p>
+            <p>
+                <a class="pill gold" href="{% url 'quests:hub' %}">Back to quest hub</a>
+            </p>
+        </section>
+    </aside>
+</main>
+
+{% if selected_variant %}
+    <script type="module">
+        const root = document.getElementById("figurine-viewer");
+        const stage = document.getElementById("viewer-stage");
+        const fallback = document.getElementById("viewer-fallback");
+
+        const sceneType = root.dataset.sceneType;
+        const color = root.dataset.color || "#7B5EA7";
+        const variantName = root.dataset.variantName;
+        const modelPath = root.dataset.modelPath;
+
+        const fallbackText = () => {
+            fallback.textContent = `${variantName} is using the Phase 5 viewer shell. A live GLB asset can be plugged into ${modelPath} later.`;
+        };
+
+        try {
+            const THREE = await import("https://unpkg.com/three@0.164.1/build/three.module.js");
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio || 1);
+            renderer.setSize(stage.clientWidth || 320, stage.clientHeight || 300);
+            stage.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(35, (stage.clientWidth || 320) / (stage.clientHeight || 300), 0.1, 100);
+            camera.position.set(0, 0.2, 4.5);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 1.1);
+            const keyLight = new THREE.DirectionalLight(0xe8f4ff, 1.4);
+            keyLight.position.set(3, 3, 4);
+            const fillLight = new THREE.DirectionalLight(0xffc3d8, 0.7);
+            fillLight.position.set(-2, 1.5, 2);
+            scene.add(ambient, keyLight, fillLight);
+
+            const geometryMap = {
+                base: new THREE.IcosahedronGeometry(1.1, 1),
+                school: new THREE.TorusKnotGeometry(0.8, 0.26, 128, 16),
+                rainy_day: new THREE.SphereGeometry(1.05, 48, 48),
+            };
+            const geometry = geometryMap[sceneType] || geometryMap.base;
+            const material = new THREE.MeshPhysicalMaterial({
+                color,
+                metalness: 0.35,
+                roughness: 0.15,
+                transparent: true,
+                opacity: 0.92,
+                clearcoat: 0.8,
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(1.6, 0.03, 32, 100),
+                new THREE.MeshBasicMaterial({ color: 0xd4a843 })
+            );
+            ring.rotation.x = Math.PI / 2;
+            scene.add(ring);
+
+            fallbackText();
+
+            const resize = () => {
+                const width = stage.clientWidth || 320;
+                const height = stage.clientHeight || 300;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            };
+
+            window.addEventListener("resize", resize);
+            resize();
+
+            const clock = new THREE.Clock();
+            const animate = () => {
+                const elapsed = clock.getElapsedTime();
+                mesh.rotation.y = elapsed * 0.7;
+                mesh.rotation.x = elapsed * 0.2;
+                mesh.position.y = Math.sin(elapsed * 1.4) * 0.08;
+                ring.rotation.z = elapsed * 0.35;
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            };
+            animate();
+        } catch (error) {
+            fallbackText();
+            stage.innerHTML = `
+                <div style="display:grid;place-items:center;height:100%;min-height:300px;border:1px solid rgba(255,255,255,0.08);border-radius:18px;background:rgba(255,255,255,0.03);">
+                    <div style="text-align:center;padding:24px;">
+                        <strong>Viewer fallback active</strong>
+                        <p style="color:#aac1eb;">Three.js could not load, so the page is showing a graceful placeholder instead.</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+{% endif %}
+{% endblock %}

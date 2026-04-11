@@ -1,3 +1,62 @@
-from django.shortcuts import render
+from django.http import HttpRequest, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET, require_POST
 
-# Create your views here.
+from catalogue.models import Variant
+from collection.models import OwnedVariant
+from core.demo import get_demo_user
+
+from .models import PlayerQuestStatus, Quest
+from .services import bootstrap_player_quests, complete_quest, start_quest
+
+
+@require_GET
+def quest_hub(request: HttpRequest):
+    user = request.user if request.user.is_authenticated else get_demo_user()
+    bootstrap_player_quests(user)
+
+    player_quests = (
+        user.player_quests.select_related("quest", "quest__reward_variant")
+        .order_by("quest__quest_order")
+    )
+    owned_variants = (
+        OwnedVariant.objects.filter(user=user)
+        .select_related("variant", "variant__character")
+        .order_by("variant__unlock_order")
+    )
+    available_variants = Variant.objects.select_related("character").order_by("unlock_order")
+
+    context = {
+        "collector": user,
+        "player_quests": player_quests,
+        "owned_variants": owned_variants,
+        "available_variants": available_variants,
+        "status_choices": PlayerQuestStatus,
+    }
+    return render(request, "quests/hub.html", context)
+
+
+@require_POST
+def quest_start(request: HttpRequest, slug: str):
+    user = request.user if request.user.is_authenticated else get_demo_user()
+    quest = get_object_or_404(Quest, slug=slug, is_active=True)
+
+    try:
+        start_quest(user, quest)
+    except ValueError:
+        return HttpResponseBadRequest("Quest cannot be started right now.")
+
+    return redirect("quests:hub")
+
+
+@require_POST
+def quest_complete(request: HttpRequest, slug: str):
+    user = request.user if request.user.is_authenticated else get_demo_user()
+    quest = get_object_or_404(Quest, slug=slug, is_active=True)
+
+    try:
+        complete_quest(user, quest)
+    except ValueError:
+        return HttpResponseBadRequest("Quest cannot be completed right now.")
+
+    return redirect("quests:hub")

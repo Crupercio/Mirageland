@@ -4,9 +4,145 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Mirageland{% endblock %}</title>
+    <style>
+        :root {
+            --bg: #08111f;
+            --panel: #11213a;
+            --panel-soft: #142844;
+            --text: #ebf1ff;
+            --muted: #aac1eb;
+            --accent: #d29cc7;
+            --gold: #d4a843;
+            --line: rgba(255, 255, 255, 0.08);
+            --success: #7fc7a6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top, rgba(123, 94, 167, 0.18), transparent 30%),
+                linear-gradient(180deg, #091120 0%, #060b15 100%);
+            min-height: 100vh;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .site-shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 0 28px;
+        }
+
+        .site-brand {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .site-brand strong {
+            font-size: 1.3rem;
+            letter-spacing: 0.04em;
+        }
+
+        .site-brand span {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .site-nav {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .site-nav a,
+        button {
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .site-nav a:hover,
+        button:hover {
+            background: var(--panel-soft);
+        }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(20, 40, 68, 0.96), rgba(11, 20, 36, 0.98));
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 24px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.88rem;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .pill.gold {
+            color: #ffe6a7;
+            border-color: rgba(212, 168, 67, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            gap: 18px;
+        }
+
+        @media (min-width: 900px) {
+            .grid.two-col {
+                grid-template-columns: 1.2fr 0.8fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    {% block content %}{% endblock %}
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="site-brand" href="{% url 'core:home' %}">
+                <strong>Mirageland</strong>
+                <span>The shelf is the game.</span>
+            </a>
+            <nav class="site-nav">
+                <a href="{% url 'core:home' %}">Home</a>
+                <a href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">Sora</a>
+                <a href="{% url 'collection:room-detail' %}">Display Room</a>
+                <a href="{% url 'quests:hub' %}">Quest Hub</a>
+            </nav>
+        </header>
+        {% block content %}{% endblock %}
+    </div>
 </body>
 </html>
-

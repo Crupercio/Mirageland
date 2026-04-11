@@ -3,10 +3,33 @@
 {% block title %}Mirageland{% endblock %}
 
 {% block content %}
-<main>
-    <h1>{{ project_name }}</h1>
-    <p>The shelf is the game.</p>
-    <p>{{ phase_name }}</p>
+<main class="grid two-col">
+    <section class="panel">
+        <span class="pill">Local Prototype</span>
+        <h1>{{ project_name }}</h1>
+        <p class="muted">
+            The first vertical slice is now centered on Sora Kasumi, three variants,
+            and a four-step story progression loop.
+        </p>
+        <p>{{ phase_name }}</p>
+        <p>
+            The next playable milestone is the quest hub, where the demo collector
+            can begin and complete the first Sora quest chain.
+        </p>
+        <p>
+            <a class="pill gold" href="{% url 'quests:hub' %}">Open the quest hub</a>
+            <a class="pill" href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">Open Sora's page</a>
+        </p>
+    </section>
+    <aside class="panel">
+        <h2>Current Slice</h2>
+        <p class="muted">What the first playable version is proving right now.</p>
+        <ul>
+            <li>One character: Sora Kasumi</li>
+            <li>Three variants: Base, School, Rainy Day</li>
+            <li>One collector progression chain</li>
+            <li>One local demo account for testing gameplay flow</li>
+        </ul>
+    </aside>
 </main>
 {% endblock %}
-
