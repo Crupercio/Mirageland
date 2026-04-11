@@ -267,3 +267,5 @@ Push when the main logged-in journey feels visually cohesive and the suite still
 - commit: `b39346b`
 - `2026-04-11`: Phase 9 authentication and real player accounts pushed to GitHub
 - commit: `88116be`
+- `2026-04-11`: Phase 10 UI polish and player experience pass pushed to GitHub
+- commit: `ec1bf08`
