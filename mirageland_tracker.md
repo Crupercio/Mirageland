@@ -202,5 +202,5 @@ Push after each stable sub-milestone instead of waiting for the whole MVP to be 
 - commit: `bda3c3a`
 - `2026-04-11`: Phases 4-6 quest loop, viewer shell, and display room pushed to GitHub
 - commit: `a682418`
-- `2026-04-11`: Phase 7 MVP expansion prepared for checkpoint
-- pending commit
+- `2026-04-11`: Phase 7 MVP catalogue and room expansion pushed to GitHub
+- commit: `af8d46b`
