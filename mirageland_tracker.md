@@ -101,12 +101,12 @@ Represent one character, three variants, and player ownership correctly.
 
 ### Tasks
 
-- [ ] Create `Character` model
-- [ ] Create `Variant` model
-- [ ] Create `OwnedVariant` model
-- [ ] Seed first character and variants
-- [ ] Add basic admin support
-- [ ] Verify data can be created and viewed
+- [x] Create `Character` model
+- [x] Create `Variant` model
+- [x] Create `OwnedVariant` model
+- [x] Seed first character and variants
+- [x] Add basic admin support
+- [x] Verify data can be created and viewed
 
 ### GitHub Checkpoint
 
