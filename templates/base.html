@@ -283,6 +283,22 @@
                 linear-gradient(180deg, rgba(12, 16, 26, 0.9), rgba(27, 35, 52, 0.92));
         }
 
+        .viewer-shell.large {
+            min-height: 620px;
+            padding: 22px;
+        }
+
+        .character-layout {
+            display: grid;
+            gap: 22px;
+            align-items: start;
+        }
+
+        .character-sidebar {
+            display: grid;
+            gap: 22px;
+        }
+
         .shelf-grid {
             display: grid;
             gap: 16px;
@@ -336,6 +352,7 @@
 
         @media (min-width: 900px) {
             .grid.two-col { grid-template-columns: 1.2fr 0.8fr; }
+            .character-layout { grid-template-columns: 1.3fr 0.7fr; }
         }
 
         @media (max-width: 720px) {
