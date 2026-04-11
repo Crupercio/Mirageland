@@ -20,14 +20,20 @@
         </div>
         <form method="post" class="grid">
             {% csrf_token %}
-            {{ form.non_field_errors }}
+            {% if form.non_field_errors %}
+                <div class="form-alert">{{ form.non_field_errors }}</div>
+            {% endif %}
             <label class="field">
                 <span>Username</span>
                 {{ form.username }}
+                {{ form.username.errors }}
+                {% if form.username.help_text %}<small class="helptext">{{ form.username.help_text }}</small>{% endif %}
             </label>
             <label class="field">
                 <span>Password</span>
                 {{ form.password }}
+                {{ form.password.errors }}
+                {% if form.password.help_text %}<small class="helptext">{{ form.password.help_text }}</small>{% endif %}
             </label>
             <button type="submit">Log in</button>
         </form>

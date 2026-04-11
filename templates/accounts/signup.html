@@ -10,22 +10,32 @@
         <p class="muted">Start your own Mirageland progress with a real collector profile.</p>
         <form method="post" class="grid">
             {% csrf_token %}
-            {{ form.non_field_errors }}
+            {% if form.non_field_errors %}
+                <div class="form-alert">{{ form.non_field_errors }}</div>
+            {% endif %}
             <label class="field">
                 <span>Username</span>
                 {{ form.username }}
+                {{ form.username.errors }}
+                {% if form.username.help_text %}<small class="helptext">{{ form.username.help_text }}</small>{% endif %}
             </label>
             <label class="field">
                 <span>Email</span>
                 {{ form.email }}
+                {{ form.email.errors }}
+                {% if form.email.help_text %}<small class="helptext">{{ form.email.help_text }}</small>{% endif %}
             </label>
             <label class="field">
                 <span>Password</span>
                 {{ form.password1 }}
+                {{ form.password1.errors }}
+                {% if form.password1.help_text %}<small class="helptext">{{ form.password1.help_text|safe }}</small>{% endif %}
             </label>
             <label class="field">
                 <span>Confirm password</span>
                 {{ form.password2 }}
+                {{ form.password2.errors }}
+                {% if form.password2.help_text %}<small class="helptext">{{ form.password2.help_text|safe }}</small>{% endif %}
             </label>
             <button type="submit">Create account</button>
         </form>

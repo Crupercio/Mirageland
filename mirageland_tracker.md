@@ -269,3 +269,5 @@ Push when the main logged-in journey feels visually cohesive and the suite still
 - commit: `88116be`
 - `2026-04-11`: Phase 10 UI polish and player experience pass pushed to GitHub
 - commit: `ec1bf08`
+- `2026-04-11`: Auth form validation feedback fix pushed to GitHub
+- commit: `pending`
