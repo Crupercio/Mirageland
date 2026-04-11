@@ -31,9 +31,15 @@ def env_bool(name: str, default: bool = False) -> bool:
     return value.lower() in {"1", "true", "yes", "on"}
 
 
+def env_int(name: str, default: int = 0) -> int:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return int(value)
+
+
 def env_list(name: str, default: list[str] | None = None) -> list[str]:
     value = os.environ.get(name)
     if value is None:
         return default or []
     return [item.strip() for item in value.split(",") if item.strip()]
-

@@ -57,6 +57,28 @@ If PostgreSQL is not ready yet, the project includes a temporary fallback for lo
 
 That fallback is only for bootstrapping. Our intended local database is still PostgreSQL.
 
+## Railway Deployment
+
+Recommended first live setup:
+
+1. Create a Railway project and connect this GitHub repo
+2. Add a PostgreSQL service in Railway
+3. Set these variables on the web service:
+   `DJANGO_SETTINGS_MODULE=mirageland.settings.production`
+   `SECRET_KEY=<strong-secret>`
+   `ALLOWED_HOSTS=<your-domain>,<your-railway-domain>`
+   `CSRF_TRUSTED_ORIGINS=https://<your-domain>,https://<your-railway-domain>`
+   `SECURE_SSL_REDIRECT=True`
+4. Railway Postgres will also provide connection variables such as `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD`
+5. Deploy and confirm `/health/` returns `200`
+
+The repository now includes `railway.json` config-as-code so the service has:
+
+- a build command
+- a pre-deploy migration command
+- a Gunicorn start command
+- a `/health/` healthcheck path
+
 ## Next Step
 
 Start with Phase 1 in [mirageland_tracker.md](./mirageland_tracker.md): lock the vertical slice before we scaffold code.

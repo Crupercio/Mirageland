@@ -187,6 +187,25 @@ Grow the vertical slice into a small but complete product.
 
 Push after each stable sub-milestone instead of waiting for the whole MVP to be done.
 
+## Phase 8: Deployment And Staging Prep
+
+### Goal
+
+Make the project ready for a first hosted staging environment without breaking the local workflow.
+
+### Tasks
+
+- [x] Add production-safe Django settings adjustments
+- [x] Add a `/health/` endpoint
+- [x] Add Railway config-as-code
+- [x] Add deploy documentation
+- [x] Support Railway-style Postgres environment variables
+- [x] Reduce local-only warnings in base settings
+
+### GitHub Checkpoint
+
+Push after production config, healthcheck, and deployment docs are verified locally.
+
 ## Push Rules
 
 - Push after something works, not before
@@ -204,3 +223,5 @@ Push after each stable sub-milestone instead of waiting for the whole MVP to be 
 - commit: `a682418`
 - `2026-04-11`: Phase 7 MVP catalogue and room expansion pushed to GitHub
 - commit: `af8d46b`
+- `2026-04-11`: Phase 8 deployment and staging prep prepared for checkpoint
+- pending commit

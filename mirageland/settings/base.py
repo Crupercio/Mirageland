@@ -29,7 +29,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -72,11 +71,11 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DB_NAME", "mirageland"),
-            "USER": env("DB_USER", "postgres"),
-            "PASSWORD": env("DB_PASSWORD", ""),
-            "HOST": env("DB_HOST", "127.0.0.1"),
-            "PORT": env("DB_PORT", "5432"),
+            "NAME": env("DB_NAME", env("PGDATABASE", "mirageland")),
+            "USER": env("DB_USER", env("PGUSER", "postgres")),
+            "PASSWORD": env("DB_PASSWORD", env("PGPASSWORD", "")),
+            "HOST": env("DB_HOST", env("PGHOST", "127.0.0.1")),
+            "PORT": env("DB_PORT", env("PGPORT", "5432")),
         }
     }
 
@@ -102,7 +101,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
