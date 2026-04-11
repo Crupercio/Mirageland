@@ -32,7 +32,7 @@
                     data-color="{{ character.color_hex }}"
                 >
                     <div id="viewer-stage" style="height: 100%; min-height: 560px; border-radius: 20px;"></div>
-                    <div id="viewer-fallback" class="muted" style="position: absolute; left: 22px; bottom: 22px; max-width: 320px;">
+                    <div id="viewer-fallback" class="muted" style="position: absolute; left: 22px; bottom: 22px; max-width: 320px; display: none;">
                         Loading viewer shell...
                     </div>
                 </div>
@@ -46,8 +46,8 @@
                         <p class="muted">Coins</p>
                     </div>
                     <div class="metric-card">
-                        <strong><code>{{ selected_variant.model_file_path }}</code></strong>
-                        <p class="muted">Model asset</p>
+                        <strong>{{ selected_variant.get_rarity_display }}</strong>
+                        <p class="muted">Variant rarity</p>
                     </div>
                 </div>
             {% else %}
@@ -141,6 +141,7 @@
         const assetUrl = `/static/${modelPath.replace(/^\/+/, "")}`;
 
         const fallbackText = (message) => {
+            fallback.style.display = "block";
             fallback.textContent = message || `${variantName} is loading in the updated viewer shell.`;
         };
 
@@ -244,7 +245,7 @@
                         });
                         frameModel(loadedModel);
                         modelAnchor.add(loadedModel);
-                        fallback.textContent = `${variantName} loaded from ${modelPath}.`;
+                        fallback.style.display = "none";
                         resolve();
                     },
                     undefined,
