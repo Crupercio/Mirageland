@@ -3,61 +3,65 @@
 {% block title %}{{ character.name }} | Mirageland{% endblock %}
 
 {% block content %}
-<main class="character-layout">
-    <section class="grid">
-        <section class="panel stack-md">
-            <div class="split">
-                <div class="stack-md" style="flex: 1 1 auto;">
-                    <span class="eyebrow">{{ character.archetype }}</span>
-                    <h1>{{ character.name }}</h1>
-                    <p class="muted">{{ character.short_description }}</p>
-                    <div class="quote-block">
-                        <p><em>"{{ character.lore_quote }}"</em></p>
-                    </div>
-                </div>
-                <div class="sub-panel" style="min-width: 220px;">
-                    <p class="muted" style="margin-bottom: 8px;">Collector</p>
-                    <strong style="display:block;font-size:1.5rem;">{{ collector.username }}</strong>
-                    <p class="muted" style="margin: 8px 0 0;">{{ owned_variant_ids|length }} owned for {{ character.name }}</p>
+<main class="grid">
+    <section class="panel stack-md">
+        <div class="split">
+            <div class="stack-md" style="flex: 1 1 auto;">
+                <span class="eyebrow">{{ character.archetype }}</span>
+                <h1>{{ character.name }}</h1>
+                <p class="muted">{{ character.short_description }}</p>
+                <div class="quote-block">
+                    <p><em>"{{ character.lore_quote }}"</em></p>
                 </div>
             </div>
+        </div>
 
-            {% if selected_variant %}
-                <div
-                    id="figurine-viewer"
-                    class="viewer-shell large"
-                    data-character-name="{{ character.name }}"
-                    data-variant-name="{{ selected_variant.name }}"
-                    data-model-path="{{ selected_variant.model_file_path }}"
-                    data-color="{{ character.color_hex }}"
-                >
-                    <div id="viewer-stage" style="height: 100%; min-height: 560px; border-radius: 20px;"></div>
-                    <div id="viewer-fallback" class="muted" style="position: absolute; left: 22px; bottom: 22px; max-width: 320px; display: none;">
-                        Loading viewer shell...
-                    </div>
+        {% if selected_variant %}
+            <div class="viewer-header">
+                <div>
+                    <h2 style="margin-bottom: 8px;">Figurine Viewer</h2>
+                    <p class="muted" style="margin-bottom: 0;">The viewer now takes center stage. Switch render modes or enable motion when you want it.</p>
                 </div>
-                <div class="action-row">
+                <div class="viewer-controls">
                     <button type="button" id="viewer-rotate-toggle">Enable auto-rotate</button>
+                    <button type="button" id="render-mode-normal" class="is-active">Normal</button>
+                    <button type="button" id="render-mode-unlit">Unlit</button>
+                    <button type="button" id="render-mode-wireframe">Wireframe</button>
                 </div>
-                <div class="metric-grid">
-                    <div class="metric-card">
-                        <strong>{{ selected_variant.name }}</strong>
-                        <p class="muted">Selected variant</p>
-                    </div>
-                    <div class="metric-card">
-                        <strong>{{ collector.coins }}</strong>
-                        <p class="muted">Coins</p>
-                    </div>
-                    <div class="metric-card">
-                        <strong>{{ selected_variant.get_rarity_display }}</strong>
-                        <p class="muted">Variant rarity</p>
-                    </div>
+            </div>
+            <div
+                id="figurine-viewer"
+                class="viewer-shell large"
+                data-character-name="{{ character.name }}"
+                data-variant-name="{{ selected_variant.name }}"
+                data-model-path="{{ selected_variant.model_file_path }}"
+                data-color="{{ character.color_hex }}"
+            >
+                <div id="viewer-stage" style="height: 100%; min-height: 680px; border-radius: 20px;"></div>
+                <div id="viewer-fallback" class="muted" style="position: absolute; left: 22px; bottom: 22px; max-width: 320px; display: none;">
+                    Loading viewer shell...
                 </div>
-            {% else %}
-                <p class="empty-state">No variants are available for this character yet.</p>
-            {% endif %}
-        </section>
+            </div>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <strong>{{ selected_variant.name }}</strong>
+                    <p class="muted">Selected variant</p>
+                </div>
+                <div class="metric-card">
+                    <strong>{{ collector.coins }}</strong>
+                    <p class="muted">Coins</p>
+                </div>
+                <div class="metric-card">
+                    <strong>{{ selected_variant.get_rarity_display }}</strong>
+                    <p class="muted">Variant rarity</p>
+                </div>
+            </div>
+        {% else %}
+            <p class="empty-state">No variants are available for this character yet.</p>
+        {% endif %}
+    </section>
 
+    <section class="character-layout">
         <section class="panel stack-md">
             <div class="split">
                 <div>
@@ -89,37 +93,35 @@
                 {% endfor %}
             </div>
         </section>
-    </section>
 
-    <aside class="character-sidebar">
-        <section class="panel stack-md">
-            <h2>Collector Status</h2>
-            <div class="metric-grid">
-                <div class="metric-card">
-                    <strong>{{ collector.username }}</strong>
-                    <p class="muted">Collector</p>
+        <aside class="character-sidebar">
+            <section class="panel stack-md">
+                <h2>Collector Status</h2>
+                <div class="sub-panel">
+                    <p class="muted" style="margin-bottom: 8px;">Collector</p>
+                    <strong style="display:block;font-size:1.5rem;">{{ collector.username }}</strong>
                 </div>
-                <div class="metric-card">
-                    <strong>{{ collector.coins }}</strong>
+                <div class="sub-panel">
+                    <strong style="display:block;font-size:1.5rem;">{{ collector.coins }}</strong>
                     <p class="muted">Coins</p>
                 </div>
-                <div class="metric-card">
-                    <strong>{{ owned_variant_ids|length }}</strong>
+                <div class="sub-panel">
+                    <strong style="display:block;font-size:1.5rem;">{{ owned_variant_ids|length }}</strong>
                     <p class="muted">Owned for {{ character.name }}</p>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <section class="panel stack-md">
-            <h2>Viewer Notes</h2>
-            <div class="sub-panel">
-                <p class="muted">This viewer now prioritizes full-body framing, grounded placement, and slower rotation so the character reads clearly.</p>
-            </div>
-            <div class="sub-panel">
-                <p class="muted">Next visual milestone: per-variant poses, custom lighting, and room-aware backgrounds.</p>
-            </div>
-        </section>
-    </aside>
+            <section class="panel stack-md">
+                <h2>Viewer Notes</h2>
+                <div class="sub-panel">
+                    <p class="muted">Normal keeps the original lit materials. Unlit removes lighting response. Wireframe keeps the textured model visible and adds a mesh overlay on top.</p>
+                </div>
+                <div class="sub-panel">
+                    <p class="muted">Next visual milestone: per-variant poses, custom lighting, and room-aware backgrounds.</p>
+                </div>
+            </section>
+        </aside>
+    </section>
 </main>
 
 {% if selected_variant %}
@@ -139,11 +141,17 @@
         const stage = document.getElementById("viewer-stage");
         const fallback = document.getElementById("viewer-fallback");
         const rotateToggle = document.getElementById("viewer-rotate-toggle");
+        const modeButtons = {
+            normal: document.getElementById("render-mode-normal"),
+            unlit: document.getElementById("render-mode-unlit"),
+            wireframe: document.getElementById("render-mode-wireframe"),
+        };
 
         const variantName = root.dataset.variantName;
         const modelPath = root.dataset.modelPath;
         const assetUrl = `/static/${modelPath.replace(/^\/+/, "")}`;
         let autoRotate = false;
+        let renderMode = "normal";
 
         const fallbackText = (message) => {
             fallback.style.display = "block";
@@ -154,21 +162,63 @@
             rotateToggle.textContent = autoRotate ? "Disable auto-rotate" : "Enable auto-rotate";
         };
 
+        const syncModeButtons = () => {
+            Object.entries(modeButtons).forEach(([mode, button]) => {
+                button.classList.toggle("is-active", mode === renderMode);
+            });
+        };
+
+        const buildUnlitMaterial = (material) => {
+            const unlit = new THREE.MeshBasicMaterial({
+                color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+                map: material.map || null,
+                transparent: material.transparent || false,
+                opacity: material.opacity ?? 1,
+                side: material.side,
+                alphaTest: material.alphaTest || 0,
+                skinning: Boolean(material.skinning),
+            });
+            return unlit;
+        };
+
+        const setMode = (mode) => {
+            renderMode = mode;
+            syncModeButtons();
+            meshEntries.forEach((entry) => {
+                if (mode === "normal") {
+                    entry.mesh.material = entry.originalMaterial;
+                    entry.overlay.visible = false;
+                } else if (mode === "unlit") {
+                    entry.mesh.material = entry.unlitMaterial;
+                    entry.overlay.visible = false;
+                } else {
+                    entry.mesh.material = entry.originalMaterial;
+                    entry.overlay.visible = true;
+                }
+            });
+        };
+
         syncRotateLabel();
+        syncModeButtons();
         rotateToggle.addEventListener("click", () => {
             autoRotate = !autoRotate;
             syncRotateLabel();
         });
+        Object.entries(modeButtons).forEach(([mode, button]) => {
+            button.addEventListener("click", () => setMode(mode));
+        });
+
+        const meshEntries = [];
 
         try {
             const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio || 1);
             renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.setSize(stage.clientWidth || 420, stage.clientHeight || 560);
+            renderer.setSize(stage.clientWidth || 840, stage.clientHeight || 680);
             stage.appendChild(renderer.domElement);
 
             const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(28, (stage.clientWidth || 420) / (stage.clientHeight || 560), 0.1, 100);
+            const camera = new THREE.PerspectiveCamera(26, (stage.clientWidth || 840) / (stage.clientHeight || 680), 0.1, 100);
             camera.position.set(0, 1.4, 8);
 
             const ambient = new THREE.AmbientLight(0xffffff, 1.2);
@@ -207,8 +257,8 @@
             let lookTarget = new THREE.Vector3(0, 1.2, 0);
 
             const resize = () => {
-                const width = stage.clientWidth || 420;
-                const height = stage.clientHeight || 560;
+                const width = stage.clientWidth || 840;
+                const height = stage.clientHeight || 680;
                 camera.aspect = width / height;
                 camera.updateProjectionMatrix();
                 renderer.setSize(width, height);
@@ -217,12 +267,11 @@
             const frameModel = (model) => {
                 const initialBox = new THREE.Box3().setFromObject(model);
                 const initialSize = initialBox.getSize(new THREE.Vector3());
-                const targetHeight = 4.8;
+                const targetHeight = 5.15;
                 const scale = targetHeight / Math.max(initialSize.y, 0.01);
                 model.scale.setScalar(scale);
 
                 const box = new THREE.Box3().setFromObject(model);
-                const size = box.getSize(new THREE.Vector3());
                 const center = box.getCenter(new THREE.Vector3());
                 const pedestalTop = pedestal.position.y + 0.24;
 
@@ -233,13 +282,13 @@
                 const framedBox = new THREE.Box3().setFromObject(model);
                 const framedSize = framedBox.getSize(new THREE.Vector3());
                 const framedCenter = framedBox.getCenter(new THREE.Vector3());
-                const verticalTarget = framedCenter.y + framedSize.y * 0.18;
+                const verticalTarget = framedCenter.y + framedSize.y * 0.12;
                 const fitHeight = framedSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
                 const fitWidth = (framedSize.x / camera.aspect) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
-                const distance = Math.max(fitHeight, fitWidth) * 1.55;
+                const distance = Math.max(fitHeight, fitWidth) * 1.5;
 
-                camera.position.set(0, verticalTarget, distance + framedSize.z * 0.6);
-                lookTarget = new THREE.Vector3(0, verticalTarget - framedSize.y * 0.06, 0);
+                camera.position.set(0, verticalTarget + 0.1, distance + framedSize.z * 0.55);
+                lookTarget = new THREE.Vector3(0, verticalTarget - framedSize.y * 0.04, 0);
                 camera.lookAt(lookTarget);
             };
 
@@ -256,10 +305,36 @@
                             if (node.isMesh) {
                                 node.castShadow = true;
                                 node.receiveShadow = true;
+
+                                const originalMaterial = node.material;
+                                const unlitMaterial = Array.isArray(originalMaterial)
+                                    ? originalMaterial.map((material) => buildUnlitMaterial(material))
+                                    : buildUnlitMaterial(originalMaterial);
+
+                                const overlayMaterial = new THREE.MeshBasicMaterial({
+                                    color: 0xf7f0de,
+                                    wireframe: true,
+                                    transparent: true,
+                                    opacity: 0.32,
+                                    depthWrite: false,
+                                });
+                                const overlay = new THREE.Mesh(node.geometry, overlayMaterial);
+                                overlay.visible = false;
+                                overlay.renderOrder = 2;
+                                overlay.scale.multiplyScalar(1.001);
+                                node.add(overlay);
+
+                                meshEntries.push({
+                                    mesh: node,
+                                    originalMaterial,
+                                    unlitMaterial,
+                                    overlay,
+                                });
                             }
                         });
                         frameModel(loadedModel);
                         modelAnchor.add(loadedModel);
+                        setMode("normal");
                         fallback.style.display = "none";
                         resolve();
                     },
@@ -287,7 +362,7 @@
             fallbackText();
             const errorMessage = error && error.message ? error.message : "Unknown loader error";
             stage.innerHTML = `
-                <div style="display:grid;place-items:center;height:100%;min-height:560px;border:1px solid rgba(255,255,255,0.08);border-radius:20px;background:rgba(255,255,255,0.03);">
+                <div style="display:grid;place-items:center;height:100%;min-height:680px;border:1px solid rgba(255,255,255,0.08);border-radius:20px;background:rgba(255,255,255,0.03);">
                     <div style="text-align:center;padding:24px;">
                         <strong>Model viewer fallback active</strong>
                         <p style="color:#cdbfae;">The GLB at <code>${assetUrl}</code> could not be loaded, so the page is showing a graceful placeholder instead.</p>
