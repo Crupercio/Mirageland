@@ -4,38 +4,80 @@
 
 {% block content %}
 <main class="grid two-col">
-    <section class="panel">
-        <span class="pill">Local Prototype</span>
+    <section class="panel hero-panel stack-md">
+        <span class="eyebrow">Live Collector Build</span>
         <h1>{{ project_name }}</h1>
         <p class="muted">
-            Mirageland now has a live MVP loop and is moving from the demo collector
-            flow into real player accounts.
+            Mirageland is now a playable online prototype where each collector gets
+            their own shelf, quest record, and figurine unlock path.
         </p>
-        <p>{{ phase_name }}</p>
+        <div class="quote-block">
+            <p>{{ phase_name }}</p>
+            <p class="muted">A cozy collectible RPG built around story, display, and return visits.</p>
+        </div>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <strong>3</strong>
+                <p class="muted">Collectors in the first roster</p>
+            </div>
+            <div class="metric-card">
+                <strong>9</strong>
+                <p class="muted">Figurine variants seeded</p>
+            </div>
+            <div class="metric-card">
+                <strong>1</strong>
+                <p class="muted">Live hosted build on Railway</p>
+            </div>
+        </div>
         <p>
             Sign up for an account to begin your own collector progress and keep it
-            tied to a real user instead of the prototype demo path.
+            attached to a real profile instead of the old prototype shortcut.
         </p>
-        <p>
+        <div class="action-row">
             {% if request.user.is_authenticated %}
-                <a class="pill" href="{% url 'catalogue:index' %}">Open the catalogue</a>
-                <a class="pill gold" href="{% url 'quests:hub' %}">Open the quest hub</a>
-                <a class="pill" href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">Open Sora's page</a>
+                <a class="button-link" href="{% url 'catalogue:index' %}">Open the catalogue</a>
+                <a class="button-link" href="{% url 'quests:hub' %}">Open the quest hub</a>
+                <a class="button-link" href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">View Sora's page</a>
             {% else %}
-                <a class="pill gold" href="{% url 'accounts:signup' %}">Create account</a>
-                <a class="pill" href="{% url 'accounts:login' %}">Log in</a>
+                <a class="button-link" href="{% url 'accounts:signup' %}">Create account</a>
+                <a class="button-link" href="{% url 'accounts:login' %}">Log in</a>
             {% endif %}
-        </p>
+        </div>
     </section>
-    <aside class="panel">
-        <h2>Current Focus</h2>
-        <p class="muted">What this next phase is making real.</p>
-        <ul>
-            <li>Each collector gets their own progress</li>
-            <li>Quest rewards belong to signed-in users</li>
-            <li>Display rooms are tied to real accounts</li>
-            <li>The old demo-only flow is being phased out</li>
-        </ul>
+    <aside class="grid">
+        <section class="panel stack-md">
+            <h2>Current Focus</h2>
+            <p class="muted">What this next phase is making feel intentional.</p>
+            <ul class="list-clean">
+                <li>Each collector gets their own progress</li>
+                <li>Quest rewards belong to signed-in users</li>
+                <li>Display rooms are tied to real accounts</li>
+                <li>The old demo-only flow is being phased out</li>
+            </ul>
+        </section>
+        <section class="panel stack-md">
+            <div class="split">
+                <div>
+                    <h2>Prototype Loop</h2>
+                    <p class="muted">The current game rhythm is already real.</p>
+                </div>
+                <span class="status-dot"></span>
+            </div>
+            <div class="grid">
+                <div class="sub-panel">
+                    <strong>1. Browse</strong>
+                    <p class="muted">Open the catalogue and choose a collector route.</p>
+                </div>
+                <div class="sub-panel">
+                    <strong>2. Progress</strong>
+                    <p class="muted">Complete Sora's quest chain and earn variants.</p>
+                </div>
+                <div class="sub-panel">
+                    <strong>3. Display</strong>
+                    <p class="muted">Place unlocked figurines in the room and react to the result.</p>
+                </div>
+            </div>
+        </section>
     </aside>
 </main>
 {% endblock %}

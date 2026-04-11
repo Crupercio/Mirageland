@@ -4,30 +4,35 @@
 
 {% block content %}
 <main class="grid two-col">
-    <section class="panel">
-        <span class="pill">Collector Profile</span>
+    <section class="panel hero-panel stack-md">
+        <span class="eyebrow">Collector Profile</span>
         <h1>{{ collector.username }}</h1>
         <p class="muted">This account now owns your quests, variants, coins, and room state.</p>
-        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-            <div class="panel" style="padding: 18px;">
+        <div class="metric-grid">
+            <div class="metric-card">
                 <strong>{{ collector.coins }}</strong>
                 <p class="muted">Coins</p>
             </div>
-            <div class="panel" style="padding: 18px;">
+            <div class="metric-card">
                 <strong>{{ collector.owned_variants.count }}</strong>
                 <p class="muted">Owned variants</p>
             </div>
-            <div class="panel" style="padding: 18px;">
+            <div class="metric-card">
                 <strong>{{ collector.player_quests.count }}</strong>
                 <p class="muted">Quest records</p>
             </div>
         </div>
     </section>
-    <aside class="panel">
+    <aside class="panel stack-md">
         <h2>Quick Links</h2>
-        <p><a class="pill" href="{% url 'catalogue:index' %}">Open catalogue</a></p>
-        <p><a class="pill" href="{% url 'quests:hub' %}">Open quest hub</a></p>
-        <p><a class="pill" href="{% url 'collection:room-detail' %}">Open display room</a></p>
+        <div class="sub-panel">
+            <p class="muted">Use this page as the collector dashboard while the app is still in MVP mode.</p>
+        </div>
+        <div class="action-row">
+            <a class="button-link" href="{% url 'catalogue:index' %}">Open catalogue</a>
+            <a class="button-link" href="{% url 'quests:hub' %}">Open quest hub</a>
+            <a class="button-link" href="{% url 'collection:room-detail' %}">Open display room</a>
+        </div>
     </aside>
 </main>
 {% endblock %}

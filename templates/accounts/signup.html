@@ -4,36 +4,44 @@
 
 {% block content %}
 <main class="grid two-col">
-    <section class="panel">
-        <span class="pill">New Collector</span>
+    <section class="panel hero-panel stack-md">
+        <span class="eyebrow">New Collector</span>
         <h1>Create account</h1>
         <p class="muted">Start your own Mirageland progress with a real collector profile.</p>
         <form method="post" class="grid">
             {% csrf_token %}
             {{ form.non_field_errors }}
-            <label class="grid">
+            <label class="field">
                 <span>Username</span>
                 {{ form.username }}
             </label>
-            <label class="grid">
+            <label class="field">
                 <span>Email</span>
                 {{ form.email }}
             </label>
-            <label class="grid">
+            <label class="field">
                 <span>Password</span>
                 {{ form.password1 }}
             </label>
-            <label class="grid">
+            <label class="field">
                 <span>Confirm password</span>
                 {{ form.password2 }}
             </label>
             <button type="submit">Create account</button>
         </form>
     </section>
-    <aside class="panel">
+    <aside class="panel stack-md">
         <h2>Already have an account?</h2>
         <p class="muted">Log in and continue your existing collector journey.</p>
-        <p><a class="pill gold" href="{% url 'accounts:login' %}">Log in</a></p>
+        <div class="sub-panel">
+            <strong>What you unlock right away</strong>
+            <ul class="list-clean">
+                <li>Your own quest history</li>
+                <li>A personal display room</li>
+                <li>Progress that works locally and on Railway</li>
+            </ul>
+        </div>
+        <p><a class="button-link" href="{% url 'accounts:login' %}">Log in</a></p>
     </aside>
 </main>
 {% endblock %}

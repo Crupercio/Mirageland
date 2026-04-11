@@ -5,32 +5,45 @@
 {% block content %}
 <main class="grid two-col">
     <section class="grid">
-        <article class="panel">
-            <span class="pill">{{ current_theme_label }}</span>
+        <article class="panel hero-panel stack-md">
+            <span class="eyebrow">{{ current_theme_label }}</span>
             <h1>{{ collector.username }}'s Display Room</h1>
             <p class="muted">
-                This is the first persistent shelf loop. Place an owned figurine
-                into a slot, save it, and the room will keep that arrangement.
+                This is the first persistent shelf loop. Arrange owned figurines,
+                choose a room theme, and keep the layout saved to your collector profile.
             </p>
 
-            <form method="post" action="{% url 'collection:room-update-theme' %}" style="margin-top: 16px;" class="grid">
+            <form method="post" action="{% url 'collection:room-update-theme' %}" class="grid">
                 {% csrf_token %}
-                <label class="muted" for="theme_slug">Room theme</label>
-                <select
-                    id="theme_slug"
-                    name="theme_slug"
-                    style="border-radius: 14px; padding: 10px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line);"
-                >
-                    {% for theme_slug, theme_label in room_themes.items %}
-                        <option value="{{ theme_slug }}" {% if room.theme_slug == theme_slug %}selected{% endif %}>
-                            {{ theme_label }}
-                        </option>
-                    {% endfor %}
-                </select>
+                <label class="field" for="theme_slug">
+                    <span>Room theme</span>
+                    <select id="theme_slug" name="theme_slug">
+                        {% for theme_slug, theme_label in room_themes.items %}
+                            <option value="{{ theme_slug }}" {% if room.theme_slug == theme_slug %}selected{% endif %}>
+                                {{ theme_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
                 <button type="submit">Save theme</button>
             </form>
 
-            <form method="post" action="{% url 'collection:room-toggle-visibility' %}" style="margin-top: 16px;">
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <strong>{{ room.reaction_count }}</strong>
+                    <p class="muted">Room reactions</p>
+                </div>
+                <div class="metric-card">
+                    <strong>{% if room.is_public %}Public{% else %}Private{% endif %}</strong>
+                    <p class="muted">Current visibility</p>
+                </div>
+                <div class="metric-card">
+                    <strong>{{ owned_variants|length }}</strong>
+                    <p class="muted">Owned variants available</p>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'collection:room-toggle-visibility' %}">
                 {% csrf_token %}
                 <input type="hidden" name="is_public" value="{% if room.is_public %}false{% else %}true{% endif %}">
                 <button type="submit">
@@ -41,9 +54,8 @@
                     {% endif %}
                 </button>
             </form>
-            <p class="muted">Current visibility: {% if room.is_public %}Public{% else %}Private{% endif %}</p>
 
-            <form method="post" action="{% url 'collection:room-toggle-reaction' %}" style="margin-top: 16px;">
+            <form method="post" action="{% url 'collection:room-toggle-reaction' %}">
                 {% csrf_token %}
                 <button type="submit" {% if not room.is_public %}disabled{% endif %}>
                     {% if has_reacted %}
@@ -54,18 +66,17 @@
                 </button>
             </form>
             <p class="muted">
-                Reactions: {{ room.reaction_count }}
                 {% if not room.is_public %}
-                    | Make the room public to allow reactions.
+                    Make the room public to allow reactions.
                 {% endif %}
             </p>
         </article>
 
-        <article class="panel">
+        <article class="panel stack-md">
             <h2>Shelf Layout</h2>
-            <div class="grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+            <div class="shelf-grid">
                 {% for slot in room.slots.all %}
-                    <section class="panel" style="padding: 18px;">
+                    <section class="sub-panel stack-md">
                         <strong>Slot {{ slot.slot_index }}</strong>
                         {% if slot.owned_variant %}
                             <p>{{ slot.owned_variant.variant.name }}</p>
@@ -76,22 +87,20 @@
 
                         <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
                             {% csrf_token %}
-                            <label class="muted" for="owned_variant_{{ slot.slot_index }}">Choose variant</label>
-                            <select
-                                id="owned_variant_{{ slot.slot_index }}"
-                                name="owned_variant_id"
-                                style="border-radius: 14px; padding: 10px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line);"
-                            >
-                                <option value="">Clear slot</option>
-                                {% for owned_variant in owned_variants %}
-                                    <option
-                                        value="{{ owned_variant.id }}"
-                                        {% if slot.owned_variant and slot.owned_variant.id == owned_variant.id %}selected{% endif %}
-                                    >
-                                        {{ owned_variant.variant.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                            <label class="field" for="owned_variant_{{ slot.slot_index }}">
+                                <span>Choose variant</span>
+                                <select id="owned_variant_{{ slot.slot_index }}" name="owned_variant_id">
+                                    <option value="">Clear slot</option>
+                                    {% for owned_variant in owned_variants %}
+                                        <option
+                                            value="{{ owned_variant.id }}"
+                                            {% if slot.owned_variant and slot.owned_variant.id == owned_variant.id %}selected{% endif %}
+                                        >
+                                            {{ owned_variant.variant.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </label>
                             <button type="submit">Save slot</button>
                         </form>
                     </section>
@@ -101,29 +110,27 @@
     </section>
 
     <aside class="grid">
-        <section class="panel">
+        <section class="panel stack-md">
             <h2>Owned Variants</h2>
             <div class="grid">
                 {% for owned_variant in owned_variants %}
-                    <article class="panel" style="padding: 18px;">
+                    <article class="sub-panel">
                         <strong>{{ owned_variant.variant.name }}</strong>
                         <p class="muted">{{ owned_variant.variant.short_description }}</p>
                     </article>
                 {% empty %}
-                    <p class="muted">Complete a quest to unlock your first figurine.</p>
+                    <p class="empty-state">Complete a quest to unlock your first figurine.</p>
                 {% endfor %}
             </div>
         </section>
 
-        <section class="panel">
+        <section class="panel stack-md">
             <h2>Next Step</h2>
             <p class="muted">
                 Once at least one figurine is placed here, the "Shelf Memory" quest
                 can be completed in the quest hub.
             </p>
-            <p>
-                <a class="pill gold" href="{% url 'quests:hub' %}">Return to quest hub</a>
-            </p>
+            <p><a class="button-link" href="{% url 'quests:hub' %}">Return to quest hub</a></p>
         </section>
     </aside>
 </main>

@@ -4,21 +4,31 @@
 
 {% block content %}
 <main class="grid">
-    <section class="panel">
-        <span class="pill">MVP Roster</span>
+    <section class="panel hero-panel stack-md">
+        <span class="eyebrow">MVP Roster</span>
         <h1>Character Catalogue</h1>
         <p class="muted">
-            The catalogue now tracks progress across the first three characters in
-            the MVP expansion set. Use it as the collector-facing browse view.
+            Browse the current roster, compare unlock progress, and jump into the
+            collector page for each figurine line.
         </p>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <strong>{{ characters|length }}</strong>
+                <p class="muted">Seeded characters</p>
+            </div>
+            <div class="metric-card">
+                <strong>{{ collector.username }}</strong>
+                <p class="muted">Active collector</p>
+            </div>
+        </div>
     </section>
 
-    <section class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+    <section class="card-grid">
         {% for character in characters %}
-            <a href="{% url 'catalogue:character-detail' character.slug %}" class="panel">
-                <div style="display: flex; justify-content: space-between; gap: 16px; align-items: start;">
+            <a href="{% url 'catalogue:character-detail' character.slug %}" class="panel stack-md">
+                <div class="split">
                     <div>
-                        <h2 style="margin-top: 0;">{{ character.name }}</h2>
+                        <h2 style="margin-bottom: 6px;">{{ character.name }}</h2>
                         <p class="muted">{{ character.archetype }}</p>
                     </div>
                     <span class="pill" style="border-color: {{ character.color_hex }}55;">
@@ -26,10 +36,12 @@
                     </span>
                 </div>
                 <p class="muted">{{ character.short_description }}</p>
-                <p><em>"{{ character.lore_quote }}"</em></p>
+                <div class="quote-block">
+                    <p><em>"{{ character.lore_quote }}"</em></p>
+                </div>
             </a>
         {% empty %}
-            <p class="muted">No catalogue entries have been seeded yet.</p>
+            <p class="empty-state">No catalogue entries have been seeded yet.</p>
         {% endfor %}
     </section>
 </main>

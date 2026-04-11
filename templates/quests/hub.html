@@ -5,46 +5,47 @@
 {% block content %}
 <main class="grid two-col">
     <section class="grid">
-        <article class="panel">
-            <span class="pill">Demo Collector</span>
+        <article class="panel hero-panel stack-md">
+            <span class="eyebrow">Story Chapter</span>
             <h1>Sora Quest Hub</h1>
             <p><strong>{{ chapter_name }}</strong></p>
             <p class="muted">
-                This prototype uses a local demo account to prove the vertical-slice
-                progression loop before full authentication is added.
+                This hub now tracks your real collector account, rewards, and shelf
+                progress through the first playable story chapter.
             </p>
-            <p>
-                <a class="pill gold" href="{% url 'collection:room-detail' %}">Open display room</a>
-            </p>
-            <div class="panel" style="padding: 18px;">
+            <div class="action-row">
+                <a class="button-link" href="{% url 'collection:room-detail' %}">Open display room</a>
+                <a class="button-link" href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">View Sora's page</a>
+            </div>
+            <div class="sub-panel stack-sm">
                 <strong>Chapter progress</strong>
                 <p class="muted">{{ completed_count }} / {{ total_count }} quests completed</p>
-                <div style="height: 10px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
-                    <div style="height: 100%; width: {% widthratio completed_count total_count 100 %}%; background: linear-gradient(90deg, #d29cc7, #d4a843);"></div>
+                <div class="meter">
+                    <div class="meter-fill" style="width: {% widthratio completed_count total_count 100 %}%;"></div>
                 </div>
             </div>
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-                <div class="panel" style="padding: 18px;">
+            <div class="metric-grid">
+                <div class="metric-card">
                     <strong>{{ collector.username }}</strong>
                     <p class="muted">Current collector account</p>
                 </div>
-                <div class="panel" style="padding: 18px;">
+                <div class="metric-card">
                     <strong>{{ collector.coins }}</strong>
                     <p class="muted">Coins earned</p>
                 </div>
-                <div class="panel" style="padding: 18px;">
+                <div class="metric-card">
                     <strong>{{ owned_variants|length }}</strong>
                     <p class="muted">Variants owned</p>
                 </div>
             </div>
         </article>
 
-        <article class="panel">
+        <article class="panel stack-md">
             <h2>Quest Chain</h2>
             <div class="grid">
                 {% for player_quest in player_quests %}
-                    <section class="panel" style="padding: 18px;">
-                        <div style="display: flex; justify-content: space-between; gap: 16px; align-items: start;">
+                    <section class="sub-panel stack-md">
+                        <div class="split">
                             <div>
                                 <span class="pill">{{ player_quest.quest.quest_order }}</span>
                                 <h3>{{ player_quest.quest.title }}</h3>
@@ -90,32 +91,32 @@
                         {% endif %}
                     </section>
                 {% empty %}
-                    <p class="muted">No quests have been seeded yet.</p>
+                    <p class="empty-state">No quests have been seeded yet.</p>
                 {% endfor %}
             </div>
         </article>
     </section>
 
     <aside class="grid">
-        <section class="panel">
+        <section class="panel stack-md">
             <h2>Owned Variants</h2>
             <div class="grid">
                 {% for owned_variant in owned_variants %}
-                    <article class="panel" style="padding: 18px;">
+                    <article class="sub-panel">
                         <strong>{{ owned_variant.variant.name }}</strong>
                         <p class="muted">{{ owned_variant.variant.short_description }}</p>
                     </article>
                 {% empty %}
-                    <p class="muted">Complete the first quest to claim Sora Base.</p>
+                    <p class="empty-state">Complete the first quest to claim Sora Base.</p>
                 {% endfor %}
             </div>
         </section>
 
-        <section class="panel">
+        <section class="panel stack-md">
             <h2>Variant Roadmap</h2>
             <div class="grid">
                 {% for variant in available_variants %}
-                    <article class="panel" style="padding: 18px;">
+                    <article class="sub-panel">
                         <strong>{{ variant.name }}</strong>
                         <p class="muted">{{ variant.get_scene_type_display }} | {{ variant.get_rarity_display }}</p>
                         <p class="muted">{{ variant.short_description }}</p>

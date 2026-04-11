@@ -4,28 +4,46 @@
 
 {% block content %}
 <main class="grid two-col">
-    <section class="panel">
-        <span class="pill">Collector Access</span>
+    <section class="panel hero-panel stack-md">
+        <span class="eyebrow">Collector Access</span>
         <h1>Log in</h1>
         <p class="muted">Return to your catalogue, quest progress, and display room.</p>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <strong>Catalogue</strong>
+                <p class="muted">Review the roster and owned variants.</p>
+            </div>
+            <div class="metric-card">
+                <strong>Quests</strong>
+                <p class="muted">Continue the current story chapter.</p>
+            </div>
+        </div>
         <form method="post" class="grid">
             {% csrf_token %}
             {{ form.non_field_errors }}
-            <label class="grid">
+            <label class="field">
                 <span>Username</span>
                 {{ form.username }}
             </label>
-            <label class="grid">
+            <label class="field">
                 <span>Password</span>
                 {{ form.password }}
             </label>
             <button type="submit">Log in</button>
         </form>
     </section>
-    <aside class="panel">
+    <aside class="panel stack-md">
         <h2>New here?</h2>
         <p class="muted">Create an account to begin collecting in your own name.</p>
-        <p><a class="pill gold" href="{% url 'accounts:signup' %}">Create account</a></p>
+        <div class="sub-panel">
+            <strong>Your profile stores:</strong>
+            <ul class="list-clean">
+                <li>Quest completion</li>
+                <li>Owned figurines</li>
+                <li>Coins and room state</li>
+            </ul>
+        </div>
+        <p><a class="button-link" href="{% url 'accounts:signup' %}">Create account</a></p>
     </aside>
 </main>
 {% endblock %}

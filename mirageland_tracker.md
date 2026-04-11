@@ -227,6 +227,25 @@ Replace the prototype collector flow with real signed-in user accounts.
 
 Push when a new user can sign up, log in, and reach their own catalogue, quests, and room state.
 
+## Phase 10: UI Polish And Player Experience
+
+### Goal
+
+Make the playable MVP feel cohesive, welcoming, and less like a raw prototype.
+
+### Tasks
+
+- [x] Refresh the shared visual system in the base layout
+- [x] Polish the homepage and account entry flow
+- [x] Improve catalogue readability and collector status presentation
+- [x] Improve quest hub layout and progress display
+- [x] Improve display room clarity and controls
+- [x] Verify the existing automated test suite after the UI pass
+
+### GitHub Checkpoint
+
+Push when the main logged-in journey feels visually cohesive and the suite still passes.
+
 ## Push Rules
 
 - Push after something works, not before

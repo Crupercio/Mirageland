@@ -5,29 +5,31 @@
 {% block content %}
 <main class="grid two-col">
     <section class="grid">
-        <article class="panel">
-            <span class="pill">{{ character.archetype }}</span>
+        <article class="panel hero-panel stack-md">
+            <span class="eyebrow">{{ character.archetype }}</span>
             <h1>{{ character.name }}</h1>
             <p class="muted">{{ character.short_description }}</p>
-            <p><em>"{{ character.lore_quote }}"</em></p>
+            <div class="quote-block">
+                <p><em>"{{ character.lore_quote }}"</em></p>
+            </div>
         </article>
 
-        <article class="panel">
+        <article class="panel stack-md">
             <h2>Variant Collection</h2>
             <div class="grid">
                 {% for variant in variants %}
                     <a
                         href="{% url 'catalogue:character-detail' character.slug %}?variant={{ variant.slug }}"
-                        class="panel"
-                        style="padding: 18px; {% if selected_variant and selected_variant.id == variant.id %}border-color: rgba(210, 156, 199, 0.6);{% endif %}"
+                        class="sub-panel stack-sm"
+                        style="{% if selected_variant and selected_variant.id == variant.id %}border-color: rgba(240, 163, 107, 0.58); background: linear-gradient(180deg, rgba(240, 163, 107, 0.12), rgba(255, 255, 255, 0.02));{% endif %}"
                     >
-                        <div style="display: flex; justify-content: space-between; gap: 16px; align-items: start;">
+                        <div class="split">
                             <div>
                                 <strong>{{ variant.name }}</strong>
-                                <p class="muted">{{ variant.get_scene_type_display }} · {{ variant.get_rarity_display }}</p>
+                                <p class="muted">{{ variant.get_scene_type_display }} &middot; {{ variant.get_rarity_display }}</p>
                             </div>
                             {% if variant.id in owned_variant_ids %}
-                                <span class="pill gold">Owned</span>
+                                <span class="pill success">Owned</span>
                             {% else %}
                                 <span class="pill">Locked</span>
                             {% endif %}
@@ -40,13 +42,12 @@
     </section>
 
     <aside class="grid">
-        <section class="panel">
+        <section class="panel stack-md">
             <h2>Figurine Viewer</h2>
             {% if selected_variant %}
                 <div
                     id="figurine-viewer"
-                    class="panel"
-                    style="padding: 18px; min-height: 360px; position: relative; overflow: hidden; background: radial-gradient(circle at top, rgba(123, 94, 167, 0.28), rgba(6, 11, 21, 0.96));"
+                    class="viewer-shell"
                     data-character-name="{{ character.name }}"
                     data-variant-name="{{ selected_variant.name }}"
                     data-model-path="{{ selected_variant.model_file_path }}"
@@ -63,18 +64,27 @@
                     Model path: <code>{{ selected_variant.model_file_path }}</code>
                 </p>
             {% else %}
-                <p class="muted">No variants are available for this character yet.</p>
+                <p class="empty-state">No variants are available for this character yet.</p>
             {% endif %}
         </section>
 
-        <section class="panel">
+        <section class="panel stack-md">
             <h2>Collector Status</h2>
-            <p><strong>{{ collector.username }}</strong></p>
-            <p class="muted">Coins: {{ collector.coins }}</p>
-            <p class="muted">Owned variants for {{ character.name }}: {{ owned_variant_ids|length }}</p>
-            <p>
-                <a class="pill gold" href="{% url 'quests:hub' %}">Back to quest hub</a>
-            </p>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <strong>{{ collector.username }}</strong>
+                    <p class="muted">Collector</p>
+                </div>
+                <div class="metric-card">
+                    <strong>{{ collector.coins }}</strong>
+                    <p class="muted">Coins</p>
+                </div>
+                <div class="metric-card">
+                    <strong>{{ owned_variant_ids|length }}</strong>
+                    <p class="muted">Owned for {{ character.name }}</p>
+                </div>
+            </div>
+            <p><a class="button-link" href="{% url 'quests:hub' %}">Back to quest hub</a></p>
         </section>
     </aside>
 </main>
@@ -167,7 +177,7 @@
                 <div style="display:grid;place-items:center;height:100%;min-height:300px;border:1px solid rgba(255,255,255,0.08);border-radius:18px;background:rgba(255,255,255,0.03);">
                     <div style="text-align:center;padding:24px;">
                         <strong>Viewer fallback active</strong>
-                        <p style="color:#aac1eb;">Three.js could not load, so the page is showing a graceful placeholder instead.</p>
+                        <p style="color:#cdbfae;">Three.js could not load, so the page is showing a graceful placeholder instead.</p>
                     </div>
                 </div>
             `;
