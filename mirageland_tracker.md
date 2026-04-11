@@ -290,3 +290,5 @@ Push when the real models load locally and the deploy pipeline is ready to serve
 - commit: `ec1bf08`
 - `2026-04-11`: Auth form validation feedback fix pushed to GitHub
 - commit: `76d7525`
+- `2026-04-11`: Phase 11 real GLB asset integration pushed to GitHub
+- commit: `d6e5642`
