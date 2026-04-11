@@ -198,3 +198,5 @@ Push after each stable sub-milestone instead of waiting for the whole MVP to be 
 
 - `2026-04-10/11`: Phase 0, Phase 1, and Phase 2 foundation pushed to GitHub
 - commit: `1dc39dc`
+- `2026-04-11`: Phase 3 core catalogue and ownership models pushed to GitHub
+- commit: `bda3c3a`
