@@ -1,17 +1,17 @@
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
-
-from core.demo import get_demo_user
 
 from .models import DisplayRoom, OwnedVariant
 from .services import ROOM_THEMES, ensure_display_room, place_owned_variant, update_room_theme
 from .services import toggle_room_reaction
 
 
+@login_required
 @require_GET
 def room_detail(request):
-    collector = request.user if request.user.is_authenticated else get_demo_user()
+    collector = request.user
     room = ensure_display_room(collector)
     room = (
         DisplayRoom.objects.select_related("user")
@@ -35,9 +35,10 @@ def room_detail(request):
     return render(request, "collection/room.html", context)
 
 
+@login_required
 @require_POST
 def room_place_variant(request, slot_index: int):
-    collector = request.user if request.user.is_authenticated else get_demo_user()
+    collector = request.user
     owned_variant_id = request.POST.get("owned_variant_id")
 
     try:
@@ -49,18 +50,20 @@ def room_place_variant(request, slot_index: int):
     return redirect("collection:room-detail")
 
 
+@login_required
 @require_POST
 def room_toggle_visibility(request):
-    collector = request.user if request.user.is_authenticated else get_demo_user()
+    collector = request.user
     room = ensure_display_room(collector)
     room.is_public = request.POST.get("is_public") == "true"
     room.save(update_fields=["is_public"])
     return redirect("collection:room-detail")
 
 
+@login_required
 @require_POST
 def room_update_theme(request):
-    collector = request.user if request.user.is_authenticated else get_demo_user()
+    collector = request.user
     theme_slug = request.POST.get("theme_slug", "")
 
     try:
@@ -71,9 +74,10 @@ def room_update_theme(request):
     return redirect("collection:room-detail")
 
 
+@login_required
 @require_POST
 def room_toggle_reaction(request):
-    collector = request.user if request.user.is_authenticated else get_demo_user()
+    collector = request.user
     room = ensure_display_room(collector)
 
     if not room.is_public:

@@ -8,28 +8,33 @@
         <span class="pill">Local Prototype</span>
         <h1>{{ project_name }}</h1>
         <p class="muted">
-            The first vertical slice is now centered on Sora Kasumi, three variants,
-            and a four-step story progression loop.
+            Mirageland now has a live MVP loop and is moving from the demo collector
+            flow into real player accounts.
         </p>
         <p>{{ phase_name }}</p>
         <p>
-            The next playable milestone is the quest hub, where the demo collector
-            can begin and complete the first Sora quest chain.
+            Sign up for an account to begin your own collector progress and keep it
+            tied to a real user instead of the prototype demo path.
         </p>
         <p>
-            <a class="pill" href="{% url 'catalogue:index' %}">Open the catalogue</a>
-            <a class="pill gold" href="{% url 'quests:hub' %}">Open the quest hub</a>
-            <a class="pill" href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">Open Sora's page</a>
+            {% if request.user.is_authenticated %}
+                <a class="pill" href="{% url 'catalogue:index' %}">Open the catalogue</a>
+                <a class="pill gold" href="{% url 'quests:hub' %}">Open the quest hub</a>
+                <a class="pill" href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">Open Sora's page</a>
+            {% else %}
+                <a class="pill gold" href="{% url 'accounts:signup' %}">Create account</a>
+                <a class="pill" href="{% url 'accounts:login' %}">Log in</a>
+            {% endif %}
         </p>
     </section>
     <aside class="panel">
-        <h2>Current Slice</h2>
-        <p class="muted">What the first playable version is proving right now.</p>
+        <h2>Current Focus</h2>
+        <p class="muted">What this next phase is making real.</p>
         <ul>
-            <li>Three characters in the MVP browse roster: Sora, Ren, and Mei</li>
-            <li>Nine total seeded variants across the MVP catalogue</li>
-            <li>One live progression chain for Sora</li>
-            <li>One local demo account for testing gameplay flow</li>
+            <li>Each collector gets their own progress</li>
+            <li>Quest rewards belong to signed-in users</li>
+            <li>Display rooms are tied to real accounts</li>
+            <li>The old demo-only flow is being phased out</li>
         </ul>
     </aside>
 </main>

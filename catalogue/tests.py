@@ -100,12 +100,19 @@ class CharacterDetailViewTests(TestCase):
         OwnedVariant.objects.create(user=self.collector, variant=self.base_variant)
 
     def test_character_detail_renders(self):
+        self.client.force_login(self.collector)
         response = self.client.get(f"/catalogue/characters/{self.character.slug}/")
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sora Kasumi")
         self.assertContains(response, "Sora Base")
         self.assertContains(response, "Owned")
+
+    def test_character_detail_redirects_anonymous_collectors_to_login(self):
+        response = self.client.get(f"/catalogue/characters/{self.character.slug}/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
 
 
 class CatalogueIndexViewTests(TestCase):
@@ -149,9 +156,16 @@ class CatalogueIndexViewTests(TestCase):
         OwnedVariant.objects.create(user=self.collector, variant=self.sora_variant)
 
     def test_catalogue_index_renders_character_progress(self):
+        self.client.force_login(self.collector)
         response = self.client.get("/catalogue/")
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sora Kasumi")
         self.assertContains(response, "Ren Takahashi")
         self.assertContains(response, "1 / 1")
+
+    def test_catalogue_index_redirects_anonymous_collectors_to_login(self):
+        response = self.client.get("/catalogue/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])

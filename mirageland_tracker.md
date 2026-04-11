@@ -206,6 +206,27 @@ Make the project ready for a first hosted staging environment without breaking t
 
 Push after production config, healthcheck, and deployment docs are verified locally.
 
+## Phase 9: Authentication And Real Player Accounts
+
+### Goal
+
+Replace the prototype collector flow with real signed-in user accounts.
+
+### Tasks
+
+- [x] Add signup page
+- [x] Add login and logout flow
+- [x] Add account summary page
+- [x] Require auth for catalogue progression pages
+- [x] Require auth for quests and room management
+- [x] Redirect new accounts into the playable app
+- [x] Add tests for auth-protected routes
+- [x] Verify the full test suite after auth changes
+
+### GitHub Checkpoint
+
+Push when a new user can sign up, log in, and reach their own catalogue, quests, and room state.
+
 ## Push Rules
 
 - Push after something works, not before

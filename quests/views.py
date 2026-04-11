@@ -1,18 +1,19 @@
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from catalogue.models import Variant
 from collection.models import OwnedVariant
-from core.demo import get_demo_user
 
 from .models import PlayerQuestStatus, Quest
 from .services import bootstrap_player_quests, complete_quest, start_quest
 
 
+@login_required
 @require_GET
 def quest_hub(request: HttpRequest):
-    user = request.user if request.user.is_authenticated else get_demo_user()
+    user = request.user
     bootstrap_player_quests(user)
 
     player_quests = (
@@ -41,9 +42,10 @@ def quest_hub(request: HttpRequest):
     return render(request, "quests/hub.html", context)
 
 
+@login_required
 @require_POST
 def quest_start(request: HttpRequest, slug: str):
-    user = request.user if request.user.is_authenticated else get_demo_user()
+    user = request.user
     quest = get_object_or_404(Quest, slug=slug, is_active=True)
 
     try:
@@ -54,9 +56,10 @@ def quest_start(request: HttpRequest, slug: str):
     return redirect("quests:hub")
 
 
+@login_required
 @require_POST
 def quest_complete(request: HttpRequest, slug: str):
-    user = request.user if request.user.is_authenticated else get_demo_user()
+    user = request.user
     quest = get_object_or_404(Quest, slug=slug, is_active=True)
 
     try:

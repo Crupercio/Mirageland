@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up | Mirageland{% endblock %}
+
+{% block content %}
+<main class="grid two-col">
+    <section class="panel">
+        <span class="pill">New Collector</span>
+        <h1>Create account</h1>
+        <p class="muted">Start your own Mirageland progress with a real collector profile.</p>
+        <form method="post" class="grid">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <label class="grid">
+                <span>Username</span>
+                {{ form.username }}
+            </label>
+            <label class="grid">
+                <span>Email</span>
+                {{ form.email }}
+            </label>
+            <label class="grid">
+                <span>Password</span>
+                {{ form.password1 }}
+            </label>
+            <label class="grid">
+                <span>Confirm password</span>
+                {{ form.password2 }}
+            </label>
+            <button type="submit">Create account</button>
+        </form>
+    </section>
+    <aside class="panel">
+        <h2>Already have an account?</h2>
+        <p class="muted">Log in and continue your existing collector journey.</p>
+        <p><a class="pill gold" href="{% url 'accounts:login' %}">Log in</a></p>
+    </aside>
+</main>
+{% endblock %}

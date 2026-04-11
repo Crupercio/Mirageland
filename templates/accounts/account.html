@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}My Account | Mirageland{% endblock %}
+
+{% block content %}
+<main class="grid two-col">
+    <section class="panel">
+        <span class="pill">Collector Profile</span>
+        <h1>{{ collector.username }}</h1>
+        <p class="muted">This account now owns your quests, variants, coins, and room state.</p>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            <div class="panel" style="padding: 18px;">
+                <strong>{{ collector.coins }}</strong>
+                <p class="muted">Coins</p>
+            </div>
+            <div class="panel" style="padding: 18px;">
+                <strong>{{ collector.owned_variants.count }}</strong>
+                <p class="muted">Owned variants</p>
+            </div>
+            <div class="panel" style="padding: 18px;">
+                <strong>{{ collector.player_quests.count }}</strong>
+                <p class="muted">Quest records</p>
+            </div>
+        </div>
+    </section>
+    <aside class="panel">
+        <h2>Quick Links</h2>
+        <p><a class="pill" href="{% url 'catalogue:index' %}">Open catalogue</a></p>
+        <p><a class="pill" href="{% url 'quests:hub' %}">Open quest hub</a></p>
+        <p><a class="pill" href="{% url 'collection:room-detail' %}">Open display room</a></p>
+    </aside>
+</main>
+{% endblock %}

@@ -1,14 +1,15 @@
 from django.db.models import Count, Q
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render
 
 from collection.models import OwnedVariant
-from core.demo import get_demo_user
 
 from .models import Character
 
 
+@login_required
 def catalogue_index(request):
-    collector = request.user if request.user.is_authenticated else get_demo_user()
+    collector = request.user
     characters = (
         Character.objects.annotate(
             total_variants=Count("variants", distinct=True),
@@ -28,8 +29,9 @@ def catalogue_index(request):
     return render(request, "catalogue/index.html", context)
 
 
+@login_required
 def character_detail(request, slug):
-    collector = request.user if request.user.is_authenticated else get_demo_user()
+    collector = request.user
     character = get_object_or_404(
         Character.objects.prefetch_related("variants").all(),
         slug=slug,
