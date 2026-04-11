@@ -246,3 +246,5 @@ Push when a new user can sign up, log in, and reach their own catalogue, quests,
 - commit: `af8d46b`
 - `2026-04-11`: Phase 8 deployment and staging prep pushed to GitHub
 - commit: `b39346b`
+- `2026-04-11`: Phase 9 authentication and real player accounts pushed to GitHub
+- commit: `88116be`
