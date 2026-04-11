@@ -1,9 +1,31 @@
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, render
 
 from collection.models import OwnedVariant
 from core.demo import get_demo_user
 
 from .models import Character
+
+
+def catalogue_index(request):
+    collector = request.user if request.user.is_authenticated else get_demo_user()
+    characters = (
+        Character.objects.annotate(
+            total_variants=Count("variants", distinct=True),
+            owned_variants=Count(
+                "variants__owners",
+                filter=Q(variants__owners__user=collector),
+                distinct=True,
+            ),
+        )
+        .order_by("name")
+    )
+
+    context = {
+        "collector": collector,
+        "characters": characters,
+    }
+    return render(request, "catalogue/index.html", context)
 
 
 def character_detail(request, slug):

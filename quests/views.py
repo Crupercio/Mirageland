@@ -32,6 +32,11 @@ def quest_hub(request: HttpRequest):
         "owned_variants": owned_variants,
         "available_variants": available_variants,
         "status_choices": PlayerQuestStatus,
+        "chapter_name": "Chapter 1 - First Light",
+        "completed_count": sum(
+            1 for player_quest in player_quests if player_quest.status == PlayerQuestStatus.COMPLETED
+        ),
+        "total_count": len(player_quests),
     }
     return render(request, "quests/hub.html", context)
 

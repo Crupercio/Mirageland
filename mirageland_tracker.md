@@ -176,12 +176,12 @@ Grow the vertical slice into a small but complete product.
 
 ### Tasks
 
-- [ ] Expand to 3 characters
-- [ ] Expand to 9 variants total
-- [ ] Add chapter 1 quest hub
-- [ ] Add catalogue page
-- [ ] Add basic reactions
-- [ ] Add basic room theme selection
+- [x] Expand to 3 characters
+- [x] Expand to 9 variants total
+- [x] Add chapter 1 quest hub
+- [x] Add catalogue page
+- [x] Add basic reactions
+- [x] Add basic room theme selection
 
 ### GitHub Checkpoint
 
@@ -202,3 +202,5 @@ Push after each stable sub-milestone instead of waiting for the whole MVP to be 
 - commit: `bda3c3a`
 - `2026-04-11`: Phases 4-6 quest loop, viewer shell, and display room pushed to GitHub
 - commit: `a682418`
+- `2026-04-11`: Phase 7 MVP expansion prepared for checkpoint
+- pending commit

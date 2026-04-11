@@ -4,7 +4,7 @@ from django.test import TestCase
 from accounts.models import User
 from catalogue.models import Character, Variant, VariantRarity, VariantSceneType
 from collection.models import OwnedVariant
-from collection.services import ensure_display_room, place_owned_variant
+from collection.services import ensure_display_room, place_owned_variant, toggle_room_reaction, update_room_theme
 
 
 class OwnedVariantModelTests(TestCase):
@@ -57,3 +57,26 @@ class OwnedVariantModelTests(TestCase):
 
         room.refresh_from_db()
         self.assertTrue(room.is_public)
+
+    def test_room_theme_can_be_updated(self):
+        room = ensure_display_room(self.user)
+        update_room_theme(self.user, "city-loft")
+
+        room.refresh_from_db()
+        self.assertEqual(room.theme_slug, "city-loft")
+
+    def test_room_reaction_toggles_from_session_state(self):
+        room = ensure_display_room(self.user)
+        room.is_public = True
+        room.save(update_fields=["is_public"])
+        session = {}
+
+        reacted = toggle_room_reaction(room, session)
+        room.refresh_from_db()
+        self.assertTrue(reacted)
+        self.assertEqual(room.reaction_count, 1)
+
+        reacted = toggle_room_reaction(room, session)
+        room.refresh_from_db()
+        self.assertFalse(reacted)
+        self.assertEqual(room.reaction_count, 0)

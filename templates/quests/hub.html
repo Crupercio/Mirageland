@@ -8,6 +8,7 @@
         <article class="panel">
             <span class="pill">Demo Collector</span>
             <h1>Sora Quest Hub</h1>
+            <p><strong>{{ chapter_name }}</strong></p>
             <p class="muted">
                 This prototype uses a local demo account to prove the vertical-slice
                 progression loop before full authentication is added.
@@ -15,6 +16,13 @@
             <p>
                 <a class="pill gold" href="{% url 'collection:room-detail' %}">Open display room</a>
             </p>
+            <div class="panel" style="padding: 18px;">
+                <strong>Chapter progress</strong>
+                <p class="muted">{{ completed_count }} / {{ total_count }} quests completed</p>
+                <div style="height: 10px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                    <div style="height: 100%; width: {% widthratio completed_count total_count 100 %}%; background: linear-gradient(90deg, #d29cc7, #d4a843);"></div>
+                </div>
+            </div>
             <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
                 <div class="panel" style="padding: 18px;">
                     <strong>{{ collector.username }}</strong>
@@ -109,7 +117,7 @@
                 {% for variant in available_variants %}
                     <article class="panel" style="padding: 18px;">
                         <strong>{{ variant.name }}</strong>
-                        <p class="muted">{{ variant.get_scene_type_display }} · {{ variant.get_rarity_display }}</p>
+                        <p class="muted">{{ variant.get_scene_type_display }} | {{ variant.get_rarity_display }}</p>
                         <p class="muted">{{ variant.short_description }}</p>
                     </article>
                 {% endfor %}

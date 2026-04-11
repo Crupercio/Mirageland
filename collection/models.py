@@ -38,6 +38,7 @@ class DisplayRoom(models.Model):
     )
     theme_slug = models.SlugField(max_length=100, default="warm-library")
     is_public = models.BooleanField(default=False)
+    reaction_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

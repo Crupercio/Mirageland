@@ -106,3 +106,52 @@ class CharacterDetailViewTests(TestCase):
         self.assertContains(response, "Sora Kasumi")
         self.assertContains(response, "Sora Base")
         self.assertContains(response, "Owned")
+
+
+class CatalogueIndexViewTests(TestCase):
+    def setUp(self):
+        self.collector = User.objects.create_user(
+            username="demo_collector",
+            password="testpass123",
+        )
+        self.sora = Character.objects.create(
+            name="Sora Kasumi",
+            archetype="The Scholar / Gentle Dreamer",
+            short_description="A soft-spoken archivist drawn to the Prism Effect.",
+            lore_quote="Some memories only appear when you sit with them.",
+            color_hex="#7B5EA7",
+        )
+        self.ren = Character.objects.create(
+            name="Ren Takahashi",
+            archetype="The Rival / Hidden Heart",
+            short_description="A sharp-edged protector who watches from the edge.",
+            lore_quote="Staying doesn't have to look soft to still count.",
+            color_hex="#445C8C",
+        )
+        self.sora_variant = Variant.objects.create(
+            character=self.sora,
+            name="Sora Base",
+            scene_type=VariantSceneType.BASE,
+            unlock_order=1,
+            rarity=VariantRarity.STANDARD,
+            short_description="Sora in the library atrium.",
+            model_file_path="models/characters/sora/base.glb",
+        )
+        Variant.objects.create(
+            character=self.ren,
+            name="Ren Base",
+            scene_type=VariantSceneType.BASE,
+            unlock_order=1,
+            rarity=VariantRarity.STANDARD,
+            short_description="Ren on a street corner.",
+            model_file_path="models/characters/ren/base.glb",
+        )
+        OwnedVariant.objects.create(user=self.collector, variant=self.sora_variant)
+
+    def test_catalogue_index_renders_character_progress(self):
+        response = self.client.get("/catalogue/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sora Kasumi")
+        self.assertContains(response, "Ren Takahashi")
+        self.assertContains(response, "1 / 1")

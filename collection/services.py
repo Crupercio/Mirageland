@@ -5,6 +5,11 @@ from django.db import transaction
 from .models import DisplayRoom, OwnedVariant, ShelfSlot
 
 DEFAULT_SLOT_COUNT = 6
+ROOM_THEMES = {
+    "warm-library": "Warm Library",
+    "city-loft": "City Loft",
+    "night-studio": "Night Studio",
+}
 
 
 def ensure_display_room(user, slot_count: int = DEFAULT_SLOT_COUNT) -> DisplayRoom:
@@ -60,3 +65,32 @@ def room_has_any_placement(user) -> bool:
         room__user=user,
         owned_variant__isnull=False,
     ).exists()
+
+
+def update_room_theme(user, theme_slug: str) -> DisplayRoom:
+    if theme_slug not in ROOM_THEMES:
+        raise ValueError("Unknown room theme.")
+
+    room = ensure_display_room(user)
+    room.theme_slug = theme_slug
+    room.save(update_fields=["theme_slug", "updated_at"])
+    return room
+
+
+def toggle_room_reaction(room: DisplayRoom, session: dict) -> bool:
+    reacted_room_ids = set(session.get("reacted_room_ids", []))
+    room_key = str(room.id)
+
+    if room_key in reacted_room_ids:
+        reacted_room_ids.remove(room_key)
+        if room.reaction_count > 0:
+            room.reaction_count -= 1
+        reacted = False
+    else:
+        reacted_room_ids.add(room_key)
+        room.reaction_count += 1
+        reacted = True
+
+    room.save(update_fields=["reaction_count", "updated_at"])
+    session["reacted_room_ids"] = sorted(reacted_room_ids)
+    return reacted

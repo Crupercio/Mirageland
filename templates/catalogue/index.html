@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Catalogue | Mirageland{% endblock %}
+
+{% block content %}
+<main class="grid">
+    <section class="panel">
+        <span class="pill">MVP Roster</span>
+        <h1>Character Catalogue</h1>
+        <p class="muted">
+            The catalogue now tracks progress across the first three characters in
+            the MVP expansion set. Use it as the collector-facing browse view.
+        </p>
+    </section>
+
+    <section class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+        {% for character in characters %}
+            <a href="{% url 'catalogue:character-detail' character.slug %}" class="panel">
+                <div style="display: flex; justify-content: space-between; gap: 16px; align-items: start;">
+                    <div>
+                        <h2 style="margin-top: 0;">{{ character.name }}</h2>
+                        <p class="muted">{{ character.archetype }}</p>
+                    </div>
+                    <span class="pill" style="border-color: {{ character.color_hex }}55;">
+                        {{ character.owned_variants }} / {{ character.total_variants }}
+                    </span>
+                </div>
+                <p class="muted">{{ character.short_description }}</p>
+                <p><em>"{{ character.lore_quote }}"</em></p>
+            </a>
+        {% empty %}
+            <p class="muted">No catalogue entries have been seeded yet.</p>
+        {% endfor %}
+    </section>
+</main>
+{% endblock %}
