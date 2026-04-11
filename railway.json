@@ -5,7 +5,7 @@
     "buildCommand": "pip install -r requirements.txt"
   },
   "deploy": {
-    "preDeployCommand": "python manage.py migrate && python manage.py seed_mvp_characters && python manage.py seed_sora_quests",
+    "preDeployCommand": "python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_mvp_characters && python manage.py seed_sora_quests",
     "startCommand": "gunicorn mirageland.wsgi --bind 0.0.0.0:$PORT",
     "healthcheckPath": "/health/",
     "healthcheckTimeout": 300,

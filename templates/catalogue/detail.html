@@ -99,16 +99,19 @@
         const color = root.dataset.color || "#7B5EA7";
         const variantName = root.dataset.variantName;
         const modelPath = root.dataset.modelPath;
+        const assetUrl = `/static/${modelPath.replace(/^\/+/, "")}`;
 
         const fallbackText = () => {
-            fallback.textContent = `${variantName} is using the Phase 5 viewer shell. A live GLB asset can be plugged into ${modelPath} later.`;
+            fallback.textContent = `${variantName} is using the current viewer shell. If the model cannot be loaded, Mirageland will keep the page readable and stable.`;
         };
 
         try {
             const THREE = await import("https://unpkg.com/three@0.164.1/build/three.module.js");
+            const { GLTFLoader } = await import("https://unpkg.com/three@0.164.1/examples/jsm/loaders/GLTFLoader.js");
 
             const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio || 1);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
             renderer.setSize(stage.clientWidth || 320, stage.clientHeight || 300);
             stage.appendChild(renderer.domElement);
 
@@ -123,31 +126,28 @@
             fillLight.position.set(-2, 1.5, 2);
             scene.add(ambient, keyLight, fillLight);
 
-            const geometryMap = {
-                base: new THREE.IcosahedronGeometry(1.1, 1),
-                school: new THREE.TorusKnotGeometry(0.8, 0.26, 128, 16),
-                rainy_day: new THREE.SphereGeometry(1.05, 48, 48),
-            };
-            const geometry = geometryMap[sceneType] || geometryMap.base;
-            const material = new THREE.MeshPhysicalMaterial({
-                color,
-                metalness: 0.35,
-                roughness: 0.15,
-                transparent: true,
-                opacity: 0.92,
-                clearcoat: 0.8,
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            scene.add(mesh);
+            const pedestal = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.2, 1.35, 0.28, 40),
+                new THREE.MeshPhysicalMaterial({
+                    color: "#f3ddba",
+                    metalness: 0.05,
+                    roughness: 0.72,
+                })
+            );
+            pedestal.position.y = -1.45;
+            scene.add(pedestal);
 
             const ring = new THREE.Mesh(
                 new THREE.TorusGeometry(1.6, 0.03, 32, 100),
                 new THREE.MeshBasicMaterial({ color: 0xd4a843 })
             );
             ring.rotation.x = Math.PI / 2;
+            ring.position.y = -1.18;
             scene.add(ring);
 
             fallbackText();
+            const loader = new GLTFLoader();
+            let loadedModel = null;
 
             const resize = () => {
                 const width = stage.clientWidth || 320;
@@ -160,12 +160,49 @@
             window.addEventListener("resize", resize);
             resize();
 
+            const fitModelToView = (model) => {
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                const maxAxis = Math.max(size.x, size.y, size.z) || 1;
+                const scale = 2.35 / maxAxis;
+
+                model.scale.setScalar(scale);
+                box.setFromObject(model);
+                const scaledCenter = box.getCenter(new THREE.Vector3());
+                model.position.x -= scaledCenter.x;
+                model.position.z -= scaledCenter.z;
+                model.position.y -= box.min.y + 1.3;
+            };
+
+            await new Promise((resolve, reject) => {
+                loader.load(
+                    assetUrl,
+                    (gltf) => {
+                        loadedModel = gltf.scene;
+                        loadedModel.traverse((node) => {
+                            if (node.isMesh) {
+                                node.castShadow = true;
+                                node.receiveShadow = true;
+                            }
+                        });
+                        fitModelToView(loadedModel);
+                        scene.add(loadedModel);
+                        fallback.textContent = `${variantName} loaded from ${modelPath}.`;
+                        resolve();
+                    },
+                    undefined,
+                    reject
+                );
+            });
+
             const clock = new THREE.Clock();
             const animate = () => {
                 const elapsed = clock.getElapsedTime();
-                mesh.rotation.y = elapsed * 0.7;
-                mesh.rotation.x = elapsed * 0.2;
-                mesh.position.y = Math.sin(elapsed * 1.4) * 0.08;
+                if (loadedModel) {
+                    loadedModel.rotation.y = elapsed * 0.45;
+                    loadedModel.position.y = Math.sin(elapsed * 1.4) * 0.03 - 0.02;
+                }
                 ring.rotation.z = elapsed * 0.35;
                 renderer.render(scene, camera);
                 requestAnimationFrame(animate);
@@ -176,8 +213,8 @@
             stage.innerHTML = `
                 <div style="display:grid;place-items:center;height:100%;min-height:300px;border:1px solid rgba(255,255,255,0.08);border-radius:18px;background:rgba(255,255,255,0.03);">
                     <div style="text-align:center;padding:24px;">
-                        <strong>Viewer fallback active</strong>
-                        <p style="color:#cdbfae;">Three.js could not load, so the page is showing a graceful placeholder instead.</p>
+                        <strong>Model viewer fallback active</strong>
+                        <p style="color:#cdbfae;">The GLB at <code>${assetUrl}</code> could not be loaded, so the page is showing a graceful placeholder instead.</p>
                     </div>
                 </div>
             `;

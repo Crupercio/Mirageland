@@ -246,6 +246,25 @@ Make the playable MVP feel cohesive, welcoming, and less like a raw prototype.
 
 Push when the main logged-in journey feels visually cohesive and the suite still passes.
 
+## Phase 11: Real 3D Asset Integration
+
+### Goal
+
+Replace the placeholder-only figurine shell with real GLB assets in the browser.
+
+### Tasks
+
+- [x] Add the first three GLB assets to the project
+- [x] Point seeded catalogue variants at real model files
+- [x] Upgrade the figurine viewer to use `GLTFLoader`
+- [x] Keep a graceful fallback when a model fails to load
+- [x] Update Railway deploy flow to collect static assets
+- [x] Verify seeding and automated tests after the asset pass
+
+### GitHub Checkpoint
+
+Push when the real models load locally and the deploy pipeline is ready to serve them in production.
+
 ## Push Rules
 
 - Push after something works, not before
