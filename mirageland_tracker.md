@@ -33,7 +33,7 @@ Set up the project so we can work locally without leaking secrets or losing trac
 - [x] Initialize local Git repository
 - [x] Configure GitHub remote
 - [x] Create first GitHub repository
-- [ ] Make first commit and push
+- [x] Make first commit and push
 
 ### GitHub Checkpoint
 
@@ -193,3 +193,8 @@ Push after each stable sub-milestone instead of waiting for the whole MVP to be 
 - Update this tracker before each push
 - Keep commits focused on one milestone or one coherent fix
 - Never commit `.env`, credentials, production dumps, or private keys
+
+## Latest Checkpoint
+
+- `2026-04-10/11`: Phase 0, Phase 1, and Phase 2 foundation pushed to GitHub
+- commit: `1dc39dc`
