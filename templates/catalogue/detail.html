@@ -128,7 +128,7 @@
             <section class="panel stack-md">
                 <h2>Viewer Notes</h2>
                 <div class="sub-panel">
-                    <p class="muted">Wireframe keeps the original textured model visible and lays a full triangle cage over the surface, so the geometry reads clearly without losing the color pass.</p>
+                    <p class="muted">Wireframe now shifts the figurine into an x-ray look: pale surfaces, preserved dark accents, and a stronger color-aware triangle cage over the body.</p>
                 </div>
                 <div class="sub-panel">
                     <p class="muted">Next strong upgrade: pose switching, lighting presets, and a room-themed viewer backdrop.</p>
@@ -227,12 +227,42 @@
             });
         };
 
-        const buildWireframeMaterial = (material) => {
+        const buildWireBaseMaterial = (material) => {
+            const sourceColor = material.color ? material.color.clone() : new THREE.Color(0xffffff);
+            const luminance = sourceColor.getHSL({ h: 0, s: 0, l: 0 }).l;
+            const softenedColor = sourceColor.clone().lerp(new THREE.Color(0xffffff), 0.84);
+            const baseOpacity = material.map
+                ? 0.34
+                : luminance < 0.22
+                    ? 0.72
+                    : luminance < 0.5
+                        ? 0.46
+                        : 0.18;
+
             return new THREE.MeshBasicMaterial({
-                color: material.color ? material.color.clone().multiplyScalar(0.78) : new THREE.Color(0x7d8fb3),
+                color: material.map ? new THREE.Color(0xffffff) : softenedColor,
+                map: material.map || null,
+                transparent: true,
+                opacity: baseOpacity,
+                side: material.side ?? THREE.FrontSide,
+                alphaTest: material.alphaTest || 0,
+                depthWrite: false,
+            });
+        };
+
+        const buildWireframeMaterial = (material) => {
+            const sourceColor = material.color ? material.color.clone() : new THREE.Color(0xffffff);
+            const { h, s, l } = sourceColor.getHSL({ h: 0, s: 0, l: 0 });
+            const cageColor =
+                l > 0.78
+                    ? new THREE.Color(0x7d8fb3)
+                    : new THREE.Color().setHSL(h, Math.min(s + 0.18, 0.95), Math.max(0.18, Math.min(l * 0.82, 0.55)));
+
+            return new THREE.MeshBasicMaterial({
+                color: cageColor,
                 wireframe: true,
                 transparent: true,
-                opacity: material.transparent ? Math.min((material.opacity ?? 1) * 0.95, 0.95) : 0.9,
+                opacity: material.transparent ? Math.min((material.opacity ?? 1) * 0.96, 0.96) : 0.96,
                 depthWrite: false,
                 side: THREE.DoubleSide,
             });
@@ -249,7 +279,7 @@
                     entry.mesh.material = entry.unlitMaterial;
                     entry.overlay.visible = false;
                 } else {
-                    entry.mesh.material = entry.originalMaterial;
+                    entry.mesh.material = entry.wireBaseMaterial;
                     entry.overlay.visible = true;
                 }
             });
@@ -458,6 +488,10 @@
                                     ? originalMaterial.map((material) => buildUnlitMaterial(material))
                                     : buildUnlitMaterial(originalMaterial);
 
+                                const wireBaseMaterial = Array.isArray(originalMaterial)
+                                    ? originalMaterial.map((material) => buildWireBaseMaterial(material))
+                                    : buildWireBaseMaterial(originalMaterial);
+
                                 const wireframeMaterial = Array.isArray(originalMaterial)
                                     ? originalMaterial.map((material) => buildWireframeMaterial(material))
                                     : buildWireframeMaterial(originalMaterial);
@@ -474,6 +508,7 @@
                                     mesh: node,
                                     originalMaterial,
                                     unlitMaterial,
+                                    wireBaseMaterial,
                                     overlay,
                                 });
                             }
