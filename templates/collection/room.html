@@ -752,7 +752,7 @@
         let isDragging = false;
         let dragStartX = 0;
         let dragStartY = 0;
-        let cameraDistance = 19;
+        let cameraDistance = 18.5;
         let panOffsetX = 0;
         let panOffsetY = 0;
         const panSensitivity = 0.012;
@@ -760,7 +760,7 @@
         const lookTarget = new THREE.Vector3(0, 0.55, 0.5);
 
         const updateCamera = () => {
-            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.58, 0.42);
+            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.62, 0.46);
             const x = Math.sin(orbitYaw) * Math.cos(pitch) * cameraDistance;
             const y = Math.sin(pitch) * cameraDistance + 2.2;
             const z = Math.cos(orbitYaw) * Math.cos(pitch) * cameraDistance + 4.8;
@@ -887,8 +887,8 @@
             if (event.shiftKey) {
                 panOffsetX += deltaX * panSensitivity;
                 panOffsetY -= deltaY * panSensitivity;
-                panOffsetX = THREE.MathUtils.clamp(panOffsetX, -3.8, 3.8);
-                panOffsetY = THREE.MathUtils.clamp(panOffsetY, -1.6, 1.9);
+                panOffsetX = THREE.MathUtils.clamp(panOffsetX, -6.2, 6.2);
+                panOffsetY = THREE.MathUtils.clamp(panOffsetY, -2.2, 2.4);
             } else {
                 orbitYaw += deltaX * orbitSensitivity;
                 orbitPitch -= deltaY * 0.0048;
@@ -910,7 +910,7 @@
             "wheel",
             (event) => {
                 event.preventDefault();
-                cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.01, 12.5, 24);
+                cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.01, 8.8, 24);
                 updateCamera();
             },
             { passive: false }
