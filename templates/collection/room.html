@@ -658,12 +658,12 @@
     };
 
     const slotOffsets = {
-        1: { x: -5.2, y: 1.85, z: 0.1 },
+        1: { x: -4.7, y: 1.85, z: 0.1 },
         2: { x: 0, y: 1.85, z: 0.1 },
-        3: { x: 5.2, y: 1.85, z: 0.1 },
-        4: { x: -5.2, y: -0.45, z: 0.1 },
+        3: { x: 4.7, y: 1.85, z: 0.1 },
+        4: { x: -4.7, y: -0.45, z: 0.1 },
         5: { x: 0, y: -0.45, z: 0.1 },
-        6: { x: 5.2, y: -0.45, z: 0.1 },
+        6: { x: 4.7, y: -0.45, z: 0.1 },
     };
 
     if (roomInfoToggle && roomInfoPopover && roomInfoClose) {
@@ -786,6 +786,40 @@
             });
         };
 
+        const stripEmbeddedDisplayBase = (root) => {
+            const overallBox = new THREE.Box3().setFromObject(root);
+            const overallSize = overallBox.getSize(new THREE.Vector3());
+            const baseCandidates = [];
+
+            root.traverse((node) => {
+                if (!node.isMesh || !node.geometry) {
+                    return;
+                }
+
+                const nodeBox = new THREE.Box3().setFromObject(node);
+                const nodeSize = nodeBox.getSize(new THREE.Vector3());
+                const nearFloor = nodeBox.min.y <= overallBox.min.y + overallSize.y * 0.1;
+                const wideEnough = Math.max(nodeSize.x, nodeSize.z) >= overallSize.y * 0.42;
+                const flatEnough = nodeSize.y <= overallSize.y * 0.18;
+                const nameHint = /base|stand|pedestal|platform/i.test(node.name || "");
+
+                if ((nearFloor && wideEnough && flatEnough) || nameHint) {
+                    baseCandidates.push({ node, nodeSize });
+                }
+            });
+
+            if (!baseCandidates.length) {
+                return;
+            }
+
+            baseCandidates
+                .sort((left, right) => (right.nodeSize.x * right.nodeSize.z) - (left.nodeSize.x * left.nodeSize.z))
+                .slice(0, 2)
+                .forEach(({ node }) => {
+                    node.visible = false;
+                });
+        };
+
         const placeModelInSlot = (root, slotIndex, tintHex) => {
             const slotOffset = slotOffsets[slotIndex] || slotOffsets[1];
             const anchor = new THREE.Group();
@@ -795,7 +829,7 @@
                 new THREE.CylinderGeometry(0.82, 1.02, 0.2, 40),
                 pedestalMaterial
             );
-            pedestal.position.set(0, -0.64, 0);
+            pedestal.position.set(0, -0.46, 0);
             anchor.add(pedestal);
 
             const halo = new THREE.Mesh(
@@ -803,25 +837,30 @@
                 new THREE.MeshBasicMaterial({ color: preset.haloColor, transparent: true, opacity: 0.72 })
             );
             halo.rotation.x = Math.PI / 2;
-            halo.position.set(0, -0.52, 0);
+            halo.position.set(0, -0.34, 0);
             anchor.add(halo);
 
+            const modelGroup = new THREE.Group();
+            anchor.add(modelGroup);
+
+            stripEmbeddedDisplayBase(root);
             const initialBox = new THREE.Box3().setFromObject(root);
             const initialSize = initialBox.getSize(new THREE.Vector3());
-            const targetHeight = 2.15;
+            const targetHeight = 2.02;
             const scale = targetHeight / Math.max(initialSize.y, 0.01);
             root.scale.setScalar(scale);
 
             const box = new THREE.Box3().setFromObject(root);
             const center = box.getCenter(new THREE.Vector3());
+            const pedestalTop = pedestal.position.y + 0.14;
             root.position.x -= center.x;
             root.position.z -= center.z;
-            root.position.y += (-0.46) - box.min.y;
+            root.position.y += pedestalTop - box.min.y + 0.02;
 
             styleModelMaterials(root, tintHex);
-            anchor.add(root);
+            modelGroup.add(root);
             roomGroup.add(anchor);
-            animatedAnchors.push({ anchor, halo, slotIndex });
+            animatedAnchors.push({ anchor, halo, modelGroup, slotIndex });
         };
 
         roomCanvas.addEventListener("pointerdown", (event) => {
@@ -895,9 +934,10 @@
         const clock = new THREE.Clock();
         const animate = () => {
             const elapsed = clock.getElapsedTime();
-            animatedAnchors.forEach(({ anchor, halo, slotIndex }, index) => {
+            animatedAnchors.forEach(({ anchor, halo, modelGroup, slotIndex }, index) => {
                 anchor.rotation.y = Math.sin(elapsed * 0.28 + index * 0.5) * 0.16;
-                anchor.position.y = (slotOffsets[slotIndex]?.y || 0) + Math.sin(elapsed * 1.15 + index) * 0.03;
+                anchor.position.y = slotOffsets[slotIndex]?.y || 0;
+                modelGroup.position.y = Math.sin(elapsed * 1.15 + index) * 0.03;
                 halo.rotation.z = elapsed * 0.18 + index * 0.24;
             });
             renderer.render(scene, camera);
