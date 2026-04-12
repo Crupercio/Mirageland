@@ -55,13 +55,6 @@
                     <span class="muted">Placed figurines will appear here together once the scene is ready.</span>
                 </div>
             </div>
-            <div id="room-slot-labels" class="room-slot-labels"></div>
-            <div id="room-slot-plaque" class="room-slot-plaque" hidden>
-                <span id="room-slot-plaque-eyebrow" class="pill room-slot-plaque-eyebrow"></span>
-                <strong id="room-slot-plaque-title"></strong>
-                <p id="room-slot-plaque-subtitle" class="muted"></p>
-                <p id="room-slot-plaque-meta" class="muted"></p>
-            </div>
             <div class="room-scene-data" hidden>
                 {% for slot in room_slots %}
                     <div
@@ -446,88 +439,6 @@
         padding: 24px;
     }
 
-    .room-slot-labels {
-        position: absolute;
-        inset: 0;
-        z-index: 3;
-        pointer-events: none;
-    }
-
-    .room-slot-label {
-        position: absolute;
-        min-width: 108px;
-        padding: 7px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: linear-gradient(180deg, rgba(181, 140, 108, 0.94), rgba(103, 73, 53, 0.96));
-        color: #fff5e8;
-        font-size: 0.78rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        text-align: center;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-        transform: translate(-50%, -50%);
-        pointer-events: auto;
-        cursor: pointer;
-        transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, opacity 140ms ease;
-    }
-
-    .room-slot-label:hover,
-    .room-slot-label:focus-visible,
-    .room-slot-label.is-selected {
-        transform: translate(-50%, calc(-50% - 2px));
-        border-color: rgba(240, 163, 107, 0.38);
-        background: linear-gradient(180deg, rgba(206, 164, 126, 0.96), rgba(122, 82, 58, 0.98));
-    }
-
-    .room-slot-label.is-ready {
-        background: linear-gradient(180deg, rgba(138, 171, 146, 0.94), rgba(56, 80, 61, 0.96));
-    }
-
-    .room-slot-label.is-filled {
-        border-color: rgba(240, 163, 107, 0.24);
-    }
-
-    .room-slot-label.is-locked {
-        background: linear-gradient(180deg, rgba(74, 76, 88, 0.92), rgba(39, 43, 54, 0.96));
-        color: #d5def1;
-        border-style: dashed;
-        opacity: 0.88;
-    }
-
-    .room-slot-plaque {
-        position: absolute;
-        z-index: 3;
-        min-width: 220px;
-        max-width: 260px;
-        padding: 14px 16px 14px;
-        border-radius: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: linear-gradient(180deg, rgba(173, 133, 102, 0.92), rgba(111, 78, 58, 0.96));
-        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-    }
-
-    .room-slot-plaque strong {
-        display: block;
-        margin: 8px 0 6px;
-        color: #fff6ea;
-        font-size: 1.04rem;
-        line-height: 1.2;
-    }
-
-    .room-slot-plaque .muted {
-        color: rgba(255, 244, 234, 0.86);
-        margin: 0;
-    }
-
-    .room-slot-plaque-eyebrow {
-        width: fit-content;
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.12);
-    }
-
     .room-controls-panel {
         gap: 18px;
     }
@@ -622,9 +533,6 @@
             grid-template-columns: 1fr;
         }
 
-        .room-slot-plaque {
-            max-width: 220px;
-        }
     }
 
     @media (max-width: 720px) {
@@ -658,12 +566,6 @@
             min-height: 480px;
         }
 
-        .room-slot-label {
-            min-width: 84px;
-            padding: 7px 10px;
-            font-size: 0.72rem;
-        }
-
         .room-title-row {
             flex-wrap: wrap;
         }
@@ -694,12 +596,6 @@
     const roomShell = document.getElementById("room-scene-shell");
     const roomCanvas = document.getElementById("room-scene-canvas");
     const roomFallback = document.getElementById("room-scene-fallback");
-    const roomSlotLabels = document.getElementById("room-slot-labels");
-    const roomSlotPlaque = document.getElementById("room-slot-plaque");
-    const roomSlotPlaqueEyebrow = document.getElementById("room-slot-plaque-eyebrow");
-    const roomSlotPlaqueTitle = document.getElementById("room-slot-plaque-title");
-    const roomSlotPlaqueSubtitle = document.getElementById("room-slot-plaque-subtitle");
-    const roomSlotPlaqueMeta = document.getElementById("room-slot-plaque-meta");
     const slotChips = [...document.querySelectorAll(".room-scene-chip")];
     const unlockedSlots = slotChips.filter((chip) => chip.dataset.unlocked === "true");
     const occupiedSlots = unlockedSlots.filter((chip) => chip.dataset.modelUrl);
@@ -850,10 +746,7 @@
             transparent: true,
             opacity: 0.92,
         });
-        const animatedAnchors = [];
         const slotAnchors = new Map();
-        const slotLabels = new Map();
-        let selectedSlotIndex = Number(occupiedSlots[0]?.dataset.slotIndex || unlockedSlots[0]?.dataset.slotIndex || slotChips[0]?.dataset.slotIndex || 2);
         let orbitYaw = 0;
         let orbitPitch = -0.14;
         let isDragging = false;
@@ -897,65 +790,6 @@
             });
         };
 
-        const slotDisplayInfo = (slotChip) => {
-            const baseLabel = `Shelf ${slotChip.dataset.shelfIndex} · ${slotChip.dataset.slotCode.toUpperCase()}`;
-            if (slotChip.dataset.modelUrl) {
-                return {
-                    eyebrow: baseLabel,
-                    title: slotChip.dataset.variantName,
-                    subtitle: slotChip.dataset.characterName,
-                    meta: "Displayed now",
-                };
-            }
-
-            if (slotChip.dataset.unlocked === "true") {
-                return {
-                    eyebrow: baseLabel,
-                    title: "Ready for display",
-                    subtitle: "Unlocked empty slot",
-                    meta: "Assign a figurine below",
-                };
-            }
-
-            return {
-                eyebrow: baseLabel,
-                title: slotChip.dataset.unlockLabel,
-                subtitle: `${slotChip.dataset.unlockCost} coins`,
-                meta: "Locked expansion slot",
-            };
-        };
-
-        const updateSelectedPlaque = (slotChip) => {
-            if (!slotChip || !roomSlotPlaque) {
-                return;
-            }
-
-            const info = slotDisplayInfo(slotChip);
-            roomSlotPlaque.hidden = false;
-            roomSlotPlaqueEyebrow.textContent = info.eyebrow;
-            roomSlotPlaqueTitle.textContent = info.title;
-            roomSlotPlaqueSubtitle.textContent = info.subtitle;
-            roomSlotPlaqueMeta.textContent = info.meta;
-
-            slotLabels.forEach((label, slotIndex) => {
-                label.classList.toggle("is-selected", slotIndex === Number(slotChip.dataset.slotIndex));
-            });
-        };
-
-        const projectWorldToScreen = (worldPosition) => {
-            const projected = worldPosition.clone().project(camera);
-            const width = roomCanvas.clientWidth || 960;
-            const height = roomCanvas.clientHeight || 560;
-            const canvasLeft = roomCanvas.offsetLeft;
-            const canvasTop = roomCanvas.offsetTop;
-
-            return {
-                x: ((projected.x + 1) / 2) * width + canvasLeft,
-                y: ((-projected.y + 1) / 2) * height + canvasTop,
-                visible: projected.z > -1 && projected.z < 1,
-            };
-        };
-
         const stripEmbeddedDisplayBase = (root) => {
             const overallBox = new THREE.Box3().setFromObject(root);
             const overallSize = overallBox.getSize(new THREE.Vector3());
@@ -997,42 +831,16 @@
             anchor.position.set(slotOffset.x, slotOffset.y, slotOffset.z);
 
             const pedestal = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.64, 0.82, 0.18, 40),
+                new THREE.CylinderGeometry(0.5, 0.62, 0.12, 40),
                 slotChip.dataset.modelUrl ? pedestalMaterial : emptyPedestalMaterial
             );
-            pedestal.position.set(0, 0.14, 0.46);
+            pedestal.position.set(0, 0.06, 0.54);
             anchor.add(pedestal);
-
-            const halo = new THREE.Mesh(
-                new THREE.TorusGeometry(0.9, 0.018, 20, 80),
-                new THREE.MeshBasicMaterial({
-                    color: preset.haloColor,
-                    transparent: true,
-                    opacity: slotChip.dataset.modelUrl ? 0.72 : 0.34,
-                })
-            );
-            halo.rotation.x = Math.PI / 2;
-            halo.position.set(0, 0.24, 0.46);
-            anchor.add(halo);
 
             const modelGroup = new THREE.Group();
             anchor.add(modelGroup);
             roomGroup.add(anchor);
-            slotAnchors.set(slotIndex, { anchor, pedestal, halo, modelGroup });
-            animatedAnchors.push({ anchor, halo, modelGroup, slotIndex, hasModel: Boolean(slotChip.dataset.modelUrl) });
-
-            if (roomSlotLabels) {
-                const label = document.createElement("button");
-                label.type = "button";
-                label.className = `room-slot-label ${slotChip.dataset.unlocked === "true" ? (slotChip.dataset.modelUrl ? "is-filled" : "is-ready") : "is-locked"}`;
-                label.textContent = `Shelf ${slotChip.dataset.shelfIndex} · ${slotChip.dataset.slotCode.toUpperCase()}`;
-                label.addEventListener("click", () => {
-                    selectedSlotIndex = slotIndex;
-                    updateSelectedPlaque(slotChip);
-                });
-                roomSlotLabels.appendChild(label);
-                slotLabels.set(slotIndex, label);
-            }
+            slotAnchors.set(slotIndex, { anchor, pedestal, modelGroup });
         };
 
         const placeModelInSlot = (root, slotIndex, tintHex) => {
@@ -1051,9 +859,9 @@
 
             const box = new THREE.Box3().setFromObject(root);
             const center = box.getCenter(new THREE.Vector3());
-            const pedestalTop = pedestal.position.y + 0.1;
+            const pedestalTop = pedestal.position.y + 0.07;
             root.position.x -= center.x;
-            root.position.z -= center.z;
+            root.position.z += pedestal.position.z - center.z;
             root.position.y += pedestalTop - box.min.y + 0.01;
 
             styleModelMaterials(root, tintHex);
@@ -1113,7 +921,6 @@
         updateCamera();
 
         unlockedSlots.forEach((slotChip) => createShelfDisplay(slotChip));
-        updateSelectedPlaque(slotChips.find((chip) => Number(chip.dataset.slotIndex) === selectedSlotIndex) || slotChips[0]);
 
         const loadPromises = occupiedSlots.map((slotChip) => {
             return new Promise((resolve) => {
@@ -1139,37 +946,7 @@
             }
         });
 
-        const clock = new THREE.Clock();
         const animate = () => {
-            const elapsed = clock.getElapsedTime();
-            animatedAnchors.forEach(({ anchor, halo, modelGroup, slotIndex, hasModel }, index) => {
-                anchor.rotation.y = Math.sin(elapsed * 0.28 + index * 0.5) * 0.16;
-                anchor.position.y = slotOffsets[slotIndex]?.y || 0;
-                modelGroup.position.y = hasModel ? Math.sin(elapsed * 1.15 + index) * 0.03 : 0;
-                halo.rotation.z = elapsed * 0.18 + index * 0.24;
-            });
-
-            slotAnchors.forEach(({ anchor, pedestal }, slotIndex) => {
-                const label = slotLabels.get(slotIndex);
-                if (label) {
-                    const labelWorld = new THREE.Vector3(0, -0.08, 0.98);
-                    anchor.localToWorld(labelWorld);
-                    const screen = projectWorldToScreen(labelWorld);
-                    label.style.display = screen.visible ? "block" : "none";
-                    label.style.left = `${screen.x}px`;
-                    label.style.top = `${screen.y}px`;
-                }
-
-                if (roomSlotPlaque && slotIndex === selectedSlotIndex) {
-                    const plaqueWorld = new THREE.Vector3(0, -0.22, 0.78);
-                    anchor.localToWorld(plaqueWorld);
-                    const plaqueScreen = projectWorldToScreen(plaqueWorld);
-                    roomSlotPlaque.hidden = !plaqueScreen.visible;
-                    roomSlotPlaque.style.left = `${plaqueScreen.x}px`;
-                    roomSlotPlaque.style.top = `${plaqueScreen.y}px`;
-                }
-            });
-
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         };
