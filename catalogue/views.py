@@ -51,12 +51,14 @@ def character_detail(request, slug):
         OwnedVariant.objects.filter(user=collector, variant__character=character)
         .values_list("variant_id", flat=True)
     )
+    selected_variant_owned = bool(selected_variant and selected_variant.id in owned_variant_ids)
 
     context = {
         "collector": collector,
         "character": character,
         "variants": variants,
         "selected_variant": selected_variant,
+        "selected_variant_owned": selected_variant_owned,
         "owned_variant_ids": owned_variant_ids,
     }
     return render(request, "catalogue/detail.html", context)

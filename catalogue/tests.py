@@ -107,6 +107,19 @@ class CharacterDetailViewTests(TestCase):
         self.assertContains(response, "Sora Kasumi")
         self.assertContains(response, "Sora Base")
         self.assertContains(response, "Owned")
+        self.assertContains(response, 'data-variant-owned="true"')
+
+    def test_character_detail_marks_locked_variant_preview_state(self):
+        self.client.force_login(self.collector)
+        response = self.client.get(
+            f"/catalogue/characters/{self.character.slug}/",
+            {"variant": self.school_variant.slug},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sora School")
+        self.assertContains(response, 'data-variant-owned="false"')
+        self.assertContains(response, "Locked preview")
 
     def test_character_detail_redirects_anonymous_collectors_to_login(self):
         response = self.client.get(f"/catalogue/characters/{self.character.slug}/")

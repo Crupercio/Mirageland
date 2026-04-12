@@ -36,6 +36,7 @@
                 data-variant-name="{{ selected_variant.name }}"
                 data-model-path="{{ selected_variant.model_file_path }}"
                 data-model-url="{% url 'catalogue:model-asset' selected_variant.model_file_path %}"
+                data-variant-owned="{{ selected_variant_owned|yesno:'true,false' }}"
                 data-color="{{ character.color_hex }}"
             >
                 <div id="viewer-stage" style="height: 100%; min-height: 700px; border-radius: 20px;"></div>
@@ -64,9 +65,12 @@
                         <button type="button" id="viewer-reset-button">Reset</button>
                     </div>
                     <div class="viewer-mode-group viewer-controls">
-                        <button type="button" id="render-mode-normal" class="is-active">Normal</button>
-                        <button type="button" id="render-mode-unlit">Unlit</button>
-                        <button type="button" id="render-mode-wireframe">Wireframe</button>
+                        <button type="button" id="render-mode-normal" class="is-active" {% if not selected_variant_owned %}disabled{% endif %}>Normal</button>
+                        <button type="button" id="render-mode-unlit" {% if not selected_variant_owned %}disabled{% endif %}>Unlit</button>
+                        <button type="button" id="render-mode-wireframe" {% if not selected_variant_owned %}disabled{% endif %}>Wireframe</button>
+                        {% if not selected_variant_owned %}
+                            <span class="pill" style="border-color: rgba(114, 246, 255, 0.38); color: #9feeff;">Locked preview</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -128,7 +132,11 @@
             <section class="panel stack-md">
                 <h2>Viewer Notes</h2>
                 <div class="sub-panel">
-                    <p class="muted">Wireframe now switches the mesh itself into a texture-aware wireframe material, matching the approach from your working viewer instead of stacking a separate gray overlay.</p>
+                    {% if selected_variant_owned %}
+                        <p class="muted">Owned variants unlock the full viewer: standard, unlit, and wireframe modes all stay available for inspection.</p>
+                    {% else %}
+                        <p class="muted">Locked variants open in a cyan hologram preview so players can imagine the reward without seeing the full unlocked presentation yet.</p>
+                    {% endif %}
                 </div>
                 <div class="sub-panel">
                     <p class="muted">Next strong upgrade: pose switching, lighting presets, and a room-themed viewer backdrop.</p>
@@ -168,9 +176,10 @@
         const variantName = root.dataset.variantName;
         const modelPath = root.dataset.modelPath;
         const assetUrl = root.dataset.modelUrl;
+        const variantOwned = root.dataset.variantOwned === "true";
 
         let autoRotate = false;
-        let renderMode = "normal";
+        let renderMode = variantOwned ? "normal" : "hologram";
         let isDragging = false;
         let dragStartX = 0;
         let dragStartY = 0;
@@ -273,7 +282,22 @@
             }));
         };
 
+        const buildHologramWireMaterial = (material) => {
+            return copyFlags(material, new THREE.MeshBasicMaterial({
+                ...getSharedMaterialProps(material),
+                color: new THREE.Color(0x72f6ff),
+                wireframe: true,
+                transparent: true,
+                opacity: 0.92,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+            }));
+        };
+
         const setMode = (mode) => {
+            if (!variantOwned && mode !== "hologram") {
+                return;
+            }
             renderMode = mode;
             syncModeButtons();
             meshEntries.forEach((entry) => {
@@ -281,6 +305,8 @@
                     entry.mesh.material = entry.originalMaterial;
                 } else if (mode === "unlit") {
                     entry.mesh.material = entry.unlitMaterial;
+                } else if (mode === "hologram") {
+                    entry.mesh.material = entry.hologramWireMaterial;
                 } else {
                     entry.mesh.material = entry.wireframeMaterial;
                 }
@@ -494,11 +520,16 @@
                                     ? originalMaterial.map((material) => buildWireframeMaterial(material))
                                     : buildWireframeMaterial(originalMaterial);
 
+                                const hologramWireMaterial = Array.isArray(originalMaterial)
+                                    ? originalMaterial.map((material) => buildHologramWireMaterial(material))
+                                    : buildHologramWireMaterial(originalMaterial);
+
                                 meshEntries.push({
                                     mesh: node,
                                     originalMaterial,
                                     unlitMaterial,
                                     wireframeMaterial,
+                                    hologramWireMaterial,
                                 });
                             }
                         });
