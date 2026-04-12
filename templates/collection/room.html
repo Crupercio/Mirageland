@@ -18,8 +18,8 @@
                                 <button type="button" id="room-info-close" class="viewer-popover-close" aria-label="Close room help">x</button>
                             </div>
                             <p class="muted">
-                                Drag to orbit the room, use the wheel to zoom, and adjust theme, visibility,
-                                reactions, and shelf placements in the controls below.
+                                Drag to orbit the room, hold <strong>Shift</strong> while dragging to pan across the shelves,
+                                use the wheel to zoom, and adjust theme, visibility, reactions, and shelf placements below.
                             </p>
                         </div>
                     </div>
@@ -47,7 +47,7 @@
             <div class="room-scene-wall"></div>
             <div class="room-scene-header">
                 <span class="pill room-scene-status">Shared scene</span>
-                <span class="muted room-scene-hint">Drag to orbit and use the wheel to zoom.</span>
+                <span class="muted room-scene-hint">Drag to orbit, hold Shift to pan, and use the wheel to zoom.</span>
             </div>
             <div id="room-scene-canvas" class="room-scene-canvas">
                 <div id="room-scene-fallback" class="room-scene-fallback">
@@ -835,14 +835,19 @@
         let dragStartX = 0;
         let dragStartY = 0;
         let cameraDistance = 19;
-        const lookTarget = new THREE.Vector3(0, 0.7, 0.5);
+        let panOffsetX = 0;
+        let panOffsetY = 0;
+        const panSensitivity = 0.012;
+        const orbitSensitivity = 0.006;
+        const lookTarget = new THREE.Vector3(0, 0.55, 0.5);
 
         const updateCamera = () => {
-            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.45, 0.3);
+            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.58, 0.42);
             const x = Math.sin(orbitYaw) * Math.cos(pitch) * cameraDistance;
             const y = Math.sin(pitch) * cameraDistance + 2.2;
             const z = Math.cos(orbitYaw) * Math.cos(pitch) * cameraDistance + 4.8;
-            camera.position.set(x, y, z);
+            camera.position.set(x + panOffsetX, y + panOffsetY, z);
+            lookTarget.set(panOffsetX, 0.55 + panOffsetY, 0.5);
             camera.lookAt(lookTarget);
         };
 
@@ -973,8 +978,16 @@
             const deltaY = event.clientY - dragStartY;
             dragStartX = event.clientX;
             dragStartY = event.clientY;
-            orbitYaw += deltaX * 0.006;
-            orbitPitch -= deltaY * 0.004;
+
+            if (event.shiftKey) {
+                panOffsetX += deltaX * panSensitivity;
+                panOffsetY -= deltaY * panSensitivity;
+                panOffsetX = THREE.MathUtils.clamp(panOffsetX, -3.8, 3.8);
+                panOffsetY = THREE.MathUtils.clamp(panOffsetY, -1.6, 1.9);
+            } else {
+                orbitYaw += deltaX * orbitSensitivity;
+                orbitPitch -= deltaY * 0.0048;
+            }
             updateCamera();
         });
 
