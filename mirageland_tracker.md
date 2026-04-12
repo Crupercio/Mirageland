@@ -316,6 +316,7 @@ Turn the room from a saved slot form into a visual showcase where occupied shelv
 - [x] Render occupied shelf slots as mini figurine previews
 - [x] Keep slot controls editable under the visual room
 - [x] Upgrade from per-slot previews to one unified multi-figurine 3D room scene
+- [x] Clean the room UX into a scene-first layout with compact controls
 - [ ] Add drag-and-drop or click-to-reposition room interactions
 
 ### GitHub Checkpoint

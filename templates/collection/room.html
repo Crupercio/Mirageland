@@ -3,139 +3,102 @@
 {% block title %}Display Room | Mirageland{% endblock %}
 
 {% block content %}
-<main class="grid two-col">
-    <section class="grid">
-        <article class="panel hero-panel stack-md">
-            <span class="eyebrow">{{ current_theme_label }}</span>
-            <h1>{{ collector.username }}'s Display Room</h1>
-            <p class="muted">
-                Your room now behaves like a real shelf showcase. Saved slots appear on the wall,
-                themes change the mood of the space, and each occupied shelf renders its figurine
-                as a compact display preview.
-            </p>
-
-            <div class="metric-grid">
-                <div class="metric-card">
-                    <strong>{{ room.reaction_count }}</strong>
-                    <p class="muted">Room reactions</p>
-                </div>
-                <div class="metric-card">
-                    <strong>{% if room.is_public %}Public{% else %}Private{% endif %}</strong>
-                    <p class="muted">Current visibility</p>
-                </div>
-                <div class="metric-card">
-                    <strong>{{ owned_variants|length }}</strong>
-                    <p class="muted">Owned variants available</p>
-                </div>
-            </div>
-
-            <div id="room-scene-shell" class="room-scene room-theme-{{ room.theme_slug|slugify }}" data-room-theme="{{ room.theme_slug }}">
-                <div class="room-scene-backdrop"></div>
-                <div class="room-scene-glow"></div>
-                <div class="room-scene-wall"></div>
-                <div id="room-scene-canvas" class="room-scene-canvas">
-                    <div id="room-scene-fallback" class="room-scene-fallback">
-                        <strong>Room preview loading...</strong>
-                        <span class="muted">Placed figurines will appear here together once the scene is ready.</span>
-                    </div>
-                </div>
-                <div class="room-scene-overlay">
-                    <div class="room-scene-copy">
-                        <span class="eyebrow">Unified Display Scene</span>
-                        <h2>Placed Figurines</h2>
-                        <p class="muted">Every occupied slot now loads into one shared room view. Drag to orbit and use the wheel to zoom.</p>
-                    </div>
-                    <div class="room-scene-legend">
-                        {% for slot in room.slots.all %}
-                            <div
-                                class="room-scene-chip {% if slot.owned_variant %}is-filled{% else %}is-empty{% endif %}"
-                                data-slot-index="{{ slot.slot_index }}"
-                                {% if slot.owned_variant %}
-                                    data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
-                                    data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
-                                    data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
-                                    data-variant-name="{{ slot.owned_variant.variant.name }}"
-                                    data-character-name="{{ slot.owned_variant.variant.character.name }}"
-                                {% endif %}
-                            >
-                                <span class="pill">Slot {{ slot.slot_index }}</span>
-                                {% if slot.owned_variant %}
-                                    <strong>{{ slot.owned_variant.variant.name }}</strong>
-                                    <p class="muted">{{ slot.owned_variant.variant.character.name }}</p>
-                                {% else %}
-                                    <strong>Empty shelf</strong>
-                                    <p class="muted">Waiting for a figurine</p>
-                                {% endif %}
+<main class="grid room-page">
+    <section class="panel hero-panel stack-md room-hero-panel">
+        <div class="room-hero-top">
+            <div class="stack-sm">
+                <span class="eyebrow">{{ current_theme_label }}</span>
+                <div class="room-title-row">
+                    <h1>{{ collector.username }}'s Display Room</h1>
+                    <div class="viewer-popover-wrap room-info-wrap">
+                        <button type="button" id="room-info-toggle" class="icon-button" aria-label="Display room help">i</button>
+                        <div id="room-info-popover" class="viewer-popover room-popover" hidden>
+                            <div class="viewer-popover-header room-popover-header">
+                                <strong>Room Guide</strong>
+                                <button type="button" id="room-info-close" class="viewer-popover-close" aria-label="Close room help">x</button>
                             </div>
-                        {% endfor %}
+                            <p class="muted">
+                                Drag to orbit the room, use the wheel to zoom, and adjust theme, visibility,
+                                reactions, and shelf placements in the controls below.
+                            </p>
+                        </div>
                     </div>
                 </div>
-                <div class="room-floor"></div>
             </div>
-        </article>
-
-        <article class="panel stack-md">
-            <div class="split">
-                <div>
-                    <h2>Shelf Controls</h2>
-                    <p class="muted">
-                        Each saved slot below updates the room wall above. Move variants around freely and the room preview
-                        will reflect the latest layout.
-                    </p>
+            <div class="room-stat-strip" aria-label="Display room summary">
+                <div class="room-stat-pill">
+                    <strong>{{ room.reaction_count }}</strong>
+                    <span>Reactions</span>
                 </div>
-                <a class="button-link" href="{% url 'quests:hub' %}">Return to quest hub</a>
+                <div class="room-stat-pill">
+                    <strong>{% if room.is_public %}Public{% else %}Private{% endif %}</strong>
+                    <span>Visibility</span>
+                </div>
+                <div class="room-stat-pill">
+                    <strong>{{ room.slots.count }}</strong>
+                    <span>Shelves</span>
+                </div>
             </div>
+        </div>
 
-            <div class="room-control-grid">
-                {% for slot in room.slots.all %}
-                    <section class="sub-panel stack-md">
-                        <div class="split">
-                            <strong>Slot {{ slot.slot_index }}</strong>
+        <div id="room-scene-shell" class="room-scene room-theme-{{ room.theme_slug|slugify }}" data-room-theme="{{ room.theme_slug }}">
+            <div class="room-scene-backdrop"></div>
+            <div class="room-scene-glow"></div>
+            <div class="room-scene-wall"></div>
+            <div class="room-scene-header">
+                <span class="pill room-scene-status">Shared scene</span>
+                <span class="muted room-scene-hint">Drag to orbit and use the wheel to zoom.</span>
+            </div>
+            <div id="room-scene-canvas" class="room-scene-canvas">
+                <div id="room-scene-fallback" class="room-scene-fallback">
+                    <strong>Room preview loading...</strong>
+                    <span class="muted">Placed figurines will appear here together once the scene is ready.</span>
+                </div>
+            </div>
+            <div class="room-scene-overlay">
+                <div class="room-scene-legend">
+                    {% for slot in room.slots.all %}
+                        <div
+                            class="room-scene-chip {% if slot.owned_variant %}is-filled{% else %}is-empty{% endif %}"
+                            data-slot-index="{{ slot.slot_index }}"
                             {% if slot.owned_variant %}
-                                <span class="pill success">Occupied</span>
+                                data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
+                                data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
+                                data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
+                                data-variant-name="{{ slot.owned_variant.variant.name }}"
+                                data-character-name="{{ slot.owned_variant.variant.character.name }}"
+                            {% endif %}
+                        >
+                            <span class="pill">Slot {{ slot.slot_index }}</span>
+                            {% if slot.owned_variant %}
+                                <strong>{{ slot.owned_variant.variant.name }}</strong>
+                                <p class="muted">{{ slot.owned_variant.variant.character.name }}</p>
                             {% else %}
-                                <span class="pill">Empty</span>
+                                <strong>Empty shelf</strong>
+                                <p class="muted">Waiting for a figurine</p>
                             {% endif %}
                         </div>
-
-                        {% if slot.owned_variant %}
-                            <p>{{ slot.owned_variant.variant.name }}</p>
-                            <p class="muted">{{ slot.owned_variant.variant.short_description }}</p>
-                        {% else %}
-                            <p class="muted">Choose an owned variant to populate this shelf.</p>
-                        {% endif %}
-
-                        <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
-                            {% csrf_token %}
-                            <label class="field" for="owned_variant_{{ slot.slot_index }}">
-                                <span>Choose variant</span>
-                                <select id="owned_variant_{{ slot.slot_index }}" name="owned_variant_id">
-                                    <option value="">Clear slot</option>
-                                    {% for owned_variant in owned_variants %}
-                                        <option
-                                            value="{{ owned_variant.id }}"
-                                            {% if slot.owned_variant and slot.owned_variant.id == owned_variant.id %}selected{% endif %}
-                                        >
-                                            {{ owned_variant.variant.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </label>
-                            <button type="submit">Save slot</button>
-                        </form>
-                    </section>
-                {% endfor %}
+                    {% endfor %}
+                </div>
             </div>
-        </article>
+            <div class="room-floor"></div>
+        </div>
     </section>
 
-    <aside class="grid">
-        <section class="panel stack-md">
-            <h2>Room Controls</h2>
-            <form method="post" action="{% url 'collection:room-update-theme' %}" class="grid">
+    <section class="panel stack-md room-controls-panel">
+        <div class="split room-controls-heading">
+            <div>
+                <h2>Room Controls</h2>
+                <p class="muted">Update the shared scene, then save your shelf layout.</p>
+            </div>
+            <a class="button-link" href="{% url 'quests:hub' %}">Return to quest hub</a>
+        </div>
+
+        <div class="room-settings-bar">
+            <form method="post" action="{% url 'collection:room-update-theme' %}" class="room-inline-form">
                 {% csrf_token %}
-                <label class="field" for="theme_slug">
-                    <span>Room theme</span>
+                <label class="field room-inline-field" for="theme_slug">
+                    <span>Theme</span>
                     <select id="theme_slug" name="theme_slug">
                         {% for theme_slug, theme_label in room_themes.items %}
                             <option value="{{ theme_slug }}" {% if room.theme_slug == theme_slug %}selected{% endif %}>
@@ -147,76 +110,225 @@
                 <button type="submit">Save theme</button>
             </form>
 
-            <form method="post" action="{% url 'collection:room-toggle-visibility' %}">
+            <form method="post" action="{% url 'collection:room-toggle-visibility' %}" class="room-inline-form room-toggle-form">
                 {% csrf_token %}
                 <input type="hidden" name="is_public" value="{% if room.is_public %}false{% else %}true{% endif %}">
                 <button type="submit">
                     {% if room.is_public %}
-                        Make room private
+                        Make private
                     {% else %}
-                        Make room public
+                        Make public
                     {% endif %}
                 </button>
             </form>
 
-            <form method="post" action="{% url 'collection:room-toggle-reaction' %}">
+            <form method="post" action="{% url 'collection:room-toggle-reaction' %}" class="room-inline-form room-toggle-form">
                 {% csrf_token %}
                 <button type="submit" {% if not room.is_public %}disabled{% endif %}>
                     {% if has_reacted %}
                         Remove reaction
                     {% else %}
-                        React to room
+                        React
                     {% endif %}
                 </button>
             </form>
+        </div>
 
-            <p class="muted">
-                {% if not room.is_public %}
-                    Make the room public to allow reactions.
-                {% else %}
-                    Public rooms can receive reactions from visiting collectors.
-                {% endif %}
-            </p>
-        </section>
+        <p class="muted room-status-note">
+            {% if room.is_public %}
+                Public rooms can receive reactions from visiting collectors.
+            {% else %}
+                Make the room public to allow reactions.
+            {% endif %}
+        </p>
 
-        <section class="panel stack-md">
-            <h2>Owned Variants</h2>
-            <div class="grid">
-                {% for owned_variant in owned_variants %}
-                    <article class="sub-panel">
-                        <strong>{{ owned_variant.variant.name }}</strong>
-                        <p class="muted">{{ owned_variant.variant.character.name }} | {{ owned_variant.variant.get_scene_type_display }}</p>
-                        <p class="muted">{{ owned_variant.variant.short_description }}</p>
-                    </article>
-                {% empty %}
-                    <p class="empty-state">Complete a quest to unlock your first figurine.</p>
-                {% endfor %}
-            </div>
-        </section>
+        <div class="room-control-grid">
+            {% for slot in room.slots.all %}
+                <section class="sub-panel stack-sm room-slot-card">
+                    <div class="split">
+                        <strong>Slot {{ slot.slot_index }}</strong>
+                        {% if slot.owned_variant %}
+                            <span class="pill success">Occupied</span>
+                        {% else %}
+                            <span class="pill">Empty</span>
+                        {% endif %}
+                    </div>
 
-        <section class="panel stack-md">
-            <h2>Next Step</h2>
-            <p class="muted">
-                The room is now visually staged. The next big upgrade after this pass is a single
-                unified 3D room renderer where all occupied figurines live in one scene together.
-            </p>
-            <p class="muted">
-                Your current saved slots already provide the data we need for that next phase.
-            </p>
-        </section>
-    </aside>
+                    {% if slot.owned_variant %}
+                        <p>{{ slot.owned_variant.variant.name }}</p>
+                    {% else %}
+                        <p class="muted">Choose an owned variant to populate this shelf.</p>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
+                        {% csrf_token %}
+                        <label class="field" for="owned_variant_{{ slot.slot_index }}">
+                            <span>Variant</span>
+                            <select id="owned_variant_{{ slot.slot_index }}" name="owned_variant_id">
+                                <option value="">Clear slot</option>
+                                {% for owned_variant in owned_variants %}
+                                    <option
+                                        value="{{ owned_variant.id }}"
+                                        {% if slot.owned_variant and slot.owned_variant.id == owned_variant.id %}selected{% endif %}
+                                    >
+                                        {{ owned_variant.variant.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <button type="submit">Save slot</button>
+                    </form>
+                </section>
+            {% endfor %}
+        </div>
+    </section>
 </main>
 
 <style>
+    .room-page {
+        gap: 20px;
+    }
+
+    .room-hero-panel {
+        padding-bottom: 22px;
+    }
+
+    .room-hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        flex-wrap: wrap;
+    }
+
+    .room-title-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .room-title-row h1 {
+        margin-bottom: 0;
+    }
+
+    .room-info-wrap {
+        position: relative;
+    }
+
+    .icon-button {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff6ea;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
+    }
+
+    .icon-button:hover,
+    .icon-button:focus-visible {
+        border-color: rgba(240, 163, 107, 0.34);
+        background: rgba(240, 163, 107, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .viewer-popover {
+        position: absolute;
+        top: calc(100% + 12px);
+        left: 50%;
+        z-index: 4;
+        width: min(340px, 78vw);
+        padding: 16px 16px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(13, 18, 28, 0.94);
+        box-shadow: 0 26px 60px rgba(0, 0, 0, 0.26);
+        backdrop-filter: blur(14px);
+        transform: translateX(-50%);
+    }
+
+    .viewer-popover-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .viewer-popover-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff6ea;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    .room-stat-strip {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .room-stat-pill {
+        min-width: 108px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+        display: grid;
+        gap: 2px;
+    }
+
+    .room-stat-pill strong {
+        font-size: 1.02rem;
+        line-height: 1.1;
+    }
+
+    .room-stat-pill span {
+        color: #cdbfae;
+        font-size: 0.82rem;
+    }
+
     .room-scene {
         position: relative;
         overflow: hidden;
-        min-height: 860px;
+        min-height: 820px;
         border-radius: 30px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: linear-gradient(180deg, rgba(19, 24, 36, 0.98), rgba(15, 18, 28, 0.98));
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-        padding: 22px 20px 160px;
+        padding: 20px 20px 150px;
+    }
+
+    .room-scene-header {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(10, 15, 24, 0.56);
+        backdrop-filter: blur(8px);
+    }
+
+    .room-scene-status {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .room-scene-hint {
+        font-size: 0.88rem;
     }
 
     .room-scene-backdrop,
@@ -269,7 +381,7 @@
     .room-scene-canvas {
         position: relative;
         z-index: 1;
-        min-height: 560px;
+        min-height: 620px;
         border-radius: 28px;
         overflow: hidden;
         background:
@@ -292,50 +404,43 @@
         text-align: center;
         gap: 6px;
         height: 100%;
-        min-height: 560px;
+        min-height: 620px;
         padding: 24px;
     }
 
     .room-scene-overlay {
         position: absolute;
-        inset: 24px 24px 180px;
+        inset: auto 24px 182px;
         z-index: 1;
-        display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
-        gap: 18px;
-        align-items: end;
+        display: block;
         pointer-events: none;
-    }
-
-    .room-scene-copy {
-        align-self: start;
-        padding: 18px 18px 20px;
-        border-radius: 22px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(12, 17, 27, 0.52);
-        backdrop-filter: blur(10px);
-    }
-
-    .room-scene-copy h2 {
-        margin: 14px 0 8px;
     }
 
     .room-scene-legend {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-        align-self: end;
+        gap: 10px;
     }
 
     .room-scene-chip {
-        min-height: 94px;
-        padding: 14px;
-        border-radius: 18px;
+        min-height: 78px;
+        padding: 12px;
+        border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(12, 17, 27, 0.54);
         backdrop-filter: blur(8px);
         display: grid;
-        gap: 6px;
+        gap: 4px;
+    }
+
+    .room-scene-chip strong {
+        font-size: 0.98rem;
+        line-height: 1.2;
+    }
+
+    .room-scene-chip p {
+        margin: 0;
+        font-size: 0.86rem;
     }
 
     .room-scene-chip.is-filled {
@@ -347,23 +452,51 @@
         opacity: 0.86;
     }
 
-    .room-slot-meta {
-        margin-top: 16px;
+    .room-controls-panel {
+        gap: 18px;
+    }
+
+    .room-controls-heading p {
+        margin-bottom: 0;
+    }
+
+    .room-settings-bar {
+        display: grid;
+        grid-template-columns: minmax(260px, 1.3fr) repeat(2, minmax(180px, auto));
+        gap: 14px;
+        align-items: end;
+    }
+
+    .room-inline-form {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    }
+
+    .room-inline-field {
+        margin-bottom: 0;
+    }
+
+    .room-toggle-form {
+        align-content: end;
+    }
+
+    .room-status-note {
+        margin-top: -4px;
+        font-size: 0.92rem;
     }
 
     .room-control-grid {
         display: grid;
-        gap: 16px;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 
-    .room-slot-preview-pill {
-        display: grid;
-        gap: 8px;
-        padding: 14px 16px;
-        border-radius: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+    .room-slot-card {
+        padding: 18px;
     }
 
     .room-theme-warm-library .room-scene-backdrop {
@@ -388,10 +521,20 @@
     }
 
     @media (max-width: 1080px) {
-        .room-scene-overlay {
+        .room-hero-top {
+            align-items: stretch;
+        }
+
+        .room-stat-strip {
+            justify-content: flex-start;
+        }
+
+        .room-settings-bar {
             grid-template-columns: 1fr;
-            inset: 18px 18px 170px;
-            align-items: start;
+        }
+
+        .room-scene-overlay {
+            inset: auto 18px 170px;
         }
 
         .room-scene-legend {
@@ -405,6 +548,14 @@
             padding: 16px 12px 120px;
         }
 
+        .room-scene-header {
+            top: 16px;
+            left: 12px;
+            right: 12px;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
         .room-scene-wall {
             inset: 16px 12px 102px;
         }
@@ -415,19 +566,29 @@
         }
 
         .room-scene-canvas {
-            min-height: 460px;
+            min-height: 480px;
         }
 
         .room-scene-fallback {
-            min-height: 460px;
+            min-height: 480px;
         }
 
         .room-scene-overlay {
-            inset: 16px 12px 132px;
+            inset: auto 12px 132px;
         }
 
         .room-scene-legend {
             grid-template-columns: 1fr;
+        }
+
+        .room-title-row {
+            flex-wrap: wrap;
+        }
+
+        .viewer-popover {
+            left: 0;
+            transform: none;
+            width: min(340px, calc(100vw - 48px));
         }
     }
 </style>
@@ -444,6 +605,9 @@
     import * as THREE from "three";
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
+    const roomInfoToggle = document.getElementById("room-info-toggle");
+    const roomInfoPopover = document.getElementById("room-info-popover");
+    const roomInfoClose = document.getElementById("room-info-close");
     const roomShell = document.getElementById("room-scene-shell");
     const roomCanvas = document.getElementById("room-scene-canvas");
     const roomFallback = document.getElementById("room-scene-fallback");
@@ -501,6 +665,23 @@
         5: { x: 0, y: -0.45, z: 0.1 },
         6: { x: 5.2, y: -0.45, z: 0.1 },
     };
+
+    if (roomInfoToggle && roomInfoPopover && roomInfoClose) {
+        roomInfoToggle.addEventListener("click", (event) => {
+            event.stopPropagation();
+            roomInfoPopover.hidden = !roomInfoPopover.hidden;
+        });
+
+        roomInfoClose.addEventListener("click", () => {
+            roomInfoPopover.hidden = true;
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!roomInfoPopover.hidden && !roomInfoPopover.contains(event.target) && event.target !== roomInfoToggle) {
+                roomInfoPopover.hidden = true;
+            }
+        });
+    }
 
     if (roomCanvas && occupiedSlots.length > 0) {
         const preset = roomPresets[roomTheme] || roomPresets["warm-library"];
