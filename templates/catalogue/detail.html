@@ -39,7 +39,14 @@
                 data-variant-owned="{{ selected_variant_owned|yesno:'true,false' }}"
                 data-color="{{ character.color_hex }}"
             >
-                <div id="viewer-stage" style="height: 100%; min-height: 700px; border-radius: 20px;"></div>
+                <div id="viewer-stage" style="height: 100%; min-height: 700px; border-radius: 20px; position: relative; overflow: hidden;"></div>
+                <div
+                    id="viewer-lock-overlay"
+                    style="display: none; position: absolute; inset: 0; pointer-events: none; border-radius: 20px; background:
+                        radial-gradient(circle at 50% 38%, rgba(122, 240, 255, 0.18), transparent 34%),
+                        linear-gradient(180deg, rgba(73, 226, 255, 0.12), rgba(2, 21, 28, 0.18));
+                        mix-blend-mode: screen;"
+                ></div>
                 <div id="viewer-fallback" class="muted" style="position: absolute; left: 22px; bottom: 22px; max-width: 340px; display: none;">
                     Viewer unavailable right now.
                 </div>
@@ -162,6 +169,7 @@
         const root = document.getElementById("figurine-viewer");
         const stage = document.getElementById("viewer-stage");
         const fallback = document.getElementById("viewer-fallback");
+        const lockOverlay = document.getElementById("viewer-lock-overlay");
         const rotateToggle = document.getElementById("viewer-rotate-toggle");
         const resetButton = document.getElementById("viewer-reset-button");
         const infoToggle = document.getElementById("viewer-info-toggle");
@@ -287,7 +295,7 @@
                 color: new THREE.Color(0x72f6ff),
                 wireframe: true,
                 transparent: true,
-                opacity: 0.72,
+                opacity: 0.86,
                 side: THREE.DoubleSide,
                 depthWrite: false,
             }));
@@ -297,7 +305,7 @@
             return copyFlags(material, new THREE.MeshBasicMaterial({
                 color: new THREE.Color(0x6be7ff),
                 transparent: true,
-                opacity: 0.34,
+                opacity: 0.22,
                 side: THREE.DoubleSide,
                 depthWrite: false,
             }));
@@ -307,7 +315,10 @@
             if (!stage) {
                 return;
             }
-            stage.style.filter = renderMode === "hologram" ? "blur(1.4px) saturate(1.08)" : "none";
+            stage.style.filter = renderMode === "hologram" ? "blur(2.4px) saturate(0.86) brightness(1.02)" : "none";
+            if (lockOverlay) {
+                lockOverlay.style.display = renderMode === "hologram" ? "block" : "none";
+            }
         };
 
         const setMode = (mode) => {
