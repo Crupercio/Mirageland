@@ -265,6 +265,25 @@ Replace the placeholder-only figurine shell with real GLB assets in the browser.
 
 Push when the real models load locally and the deploy pipeline is ready to serve them in production.
 
+## Phase 12: Variant Presentation And Locked Previews
+
+### Goal
+
+Make each variant feel intentionally staged, and give locked variants a readable teaser state instead of a broken or spoiler-heavy reveal.
+
+### Tasks
+
+- [x] Add dedicated Sora variant model files
+- [x] Make locked variants default to hologram preview mode
+- [x] Polish locked hologram presentation
+- [x] Add per-variant stage background and lighting presets for Sora
+- [ ] Extend presentation presets to Ren and Mei
+- [ ] Add per-variant background art or image plates
+
+### GitHub Checkpoint
+
+Push once Sora variants feel visually distinct and locked previews read clearly as teaser states.
+
 ## Push Rules
 
 - Push after something works, not before
