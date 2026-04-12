@@ -278,7 +278,7 @@ Make each variant feel intentionally staged, and give locked variants a readable
 - [x] Polish locked hologram presentation
 - [x] Add per-variant stage background and lighting presets for Sora
 - [x] Extend presentation presets to Ren and Mei
-- [ ] Add per-variant background art or image plates
+- [x] Add per-variant background art or image plates
 
 ### GitHub Checkpoint
 
