@@ -910,7 +910,7 @@
             "wheel",
             (event) => {
                 event.preventDefault();
-                cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.01, 8.8, 24);
+                cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.01, 6.9, 24);
                 updateCamera();
             },
             { passive: false }
