@@ -657,13 +657,15 @@
         },
     };
 
+    const topShelfY = 1.35;
+    const bottomShelfY = -1.25;
     const slotOffsets = {
-        1: { x: -4.7, y: 1.62, z: 0.1 },
-        2: { x: 0, y: 1.62, z: 0.1 },
-        3: { x: 4.7, y: 1.62, z: 0.1 },
-        4: { x: -4.7, y: -0.69, z: 0.1 },
-        5: { x: 0, y: -0.69, z: 0.1 },
-        6: { x: 4.7, y: -0.69, z: 0.1 },
+        1: { x: -4.7, y: topShelfY, z: 0.1 },
+        2: { x: 0, y: topShelfY, z: 0.1 },
+        3: { x: 4.7, y: topShelfY, z: 0.1 },
+        4: { x: -4.7, y: bottomShelfY, z: 0.1 },
+        5: { x: 0, y: bottomShelfY, z: 0.1 },
+        6: { x: 4.7, y: bottomShelfY, z: 0.1 },
     };
 
     if (roomInfoToggle && roomInfoPopover && roomInfoClose) {
@@ -732,7 +734,7 @@
             roughness: 0.7,
             metalness: 0.08,
         });
-        const shelfRows = [1.2, -1.1];
+        const shelfRows = [topShelfY, bottomShelfY];
         for (const y of shelfRows) {
             const board = new THREE.Mesh(new THREE.BoxGeometry(16.5, 0.18, 1.4), shelfMaterial);
             board.position.set(0, y, 0.6);
@@ -829,7 +831,7 @@
                 new THREE.CylinderGeometry(0.82, 1.02, 0.2, 40),
                 pedestalMaterial
             );
-            pedestal.position.set(0, -0.46, 0);
+            pedestal.position.set(0, 0.19, 0);
             anchor.add(pedestal);
 
             const halo = new THREE.Mesh(
@@ -837,7 +839,7 @@
                 new THREE.MeshBasicMaterial({ color: preset.haloColor, transparent: true, opacity: 0.72 })
             );
             halo.rotation.x = Math.PI / 2;
-            halo.position.set(0, -0.34, 0);
+            halo.position.set(0, 0.31, 0);
             anchor.add(halo);
 
             const modelGroup = new THREE.Group();
@@ -846,16 +848,16 @@
             stripEmbeddedDisplayBase(root);
             const initialBox = new THREE.Box3().setFromObject(root);
             const initialSize = initialBox.getSize(new THREE.Vector3());
-            const targetHeight = 1.92;
+            const targetHeight = 1.9;
             const scale = targetHeight / Math.max(initialSize.y, 0.01);
             root.scale.setScalar(scale);
 
             const box = new THREE.Box3().setFromObject(root);
             const center = box.getCenter(new THREE.Vector3());
-            const pedestalTop = pedestal.position.y + 0.14;
+            const pedestalTop = pedestal.position.y + 0.1;
             root.position.x -= center.x;
             root.position.z -= center.z;
-            root.position.y += pedestalTop - box.min.y + 0.02;
+            root.position.y += pedestalTop - box.min.y + 0.01;
 
             styleModelMaterials(root, tintHex);
             modelGroup.add(root);
