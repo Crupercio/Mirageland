@@ -371,7 +371,7 @@
                 modelAnchor.rotation.set(0, 0, 0);
                 modelAnchor.position.y = 0;
             }
-            setMode("normal");
+            setMode(variantOwned ? "normal" : "hologram");
             syncRotateLabel();
             updateCamera();
         };
