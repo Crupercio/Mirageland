@@ -48,6 +48,7 @@
             <div class="room-scene-header">
                 <span class="pill room-scene-status">Shared scene</span>
                 <span class="muted room-scene-hint">Drag to orbit, hold Shift to pan, and use the wheel to zoom.</span>
+                <button type="button" id="room-scene-reset" class="room-scene-reset">Reset view</button>
             </div>
             <div id="room-scene-canvas" class="room-scene-canvas">
                 <div id="room-scene-fallback" class="room-scene-fallback">
@@ -169,6 +170,10 @@
                                     {% else %}
                                         <p class="muted">Unlocked and ready for a figurine.</p>
                                     {% endif %}
+
+                                    <button type="button" class="room-focus-button" data-focus-slot="{{ slot.slot_index }}">
+                                        Focus in scene
+                                    </button>
 
                                     <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
                                         {% csrf_token %}
@@ -353,6 +358,26 @@
         backdrop-filter: blur(8px);
     }
 
+    .room-scene-reset {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff6ea;
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 600;
+        padding: 8px 14px;
+        cursor: pointer;
+        transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    .room-scene-reset:hover,
+    .room-scene-reset:focus-visible {
+        border-color: rgba(240, 163, 107, 0.32);
+        background: rgba(240, 163, 107, 0.1);
+        transform: translateY(-1px);
+    }
+
     .room-scene-status {
         background: rgba(255, 255, 255, 0.05);
         border-color: rgba(255, 255, 255, 0.1);
@@ -495,6 +520,27 @@
         padding: 18px;
     }
 
+    .room-focus-button {
+        width: fit-content;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        color: #fff6ea;
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    .room-focus-button:hover,
+    .room-focus-button:focus-visible {
+        border-color: rgba(240, 163, 107, 0.32);
+        background: rgba(240, 163, 107, 0.1);
+        transform: translateY(-1px);
+    }
+
     .room-slot-card.is-locked-slot {
         background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
     }
@@ -546,6 +592,7 @@
             left: 12px;
             right: 12px;
             justify-content: space-between;
+            flex-wrap: wrap;
             gap: 8px;
         }
 
@@ -596,6 +643,8 @@
     const roomShell = document.getElementById("room-scene-shell");
     const roomCanvas = document.getElementById("room-scene-canvas");
     const roomFallback = document.getElementById("room-scene-fallback");
+    const roomSceneReset = document.getElementById("room-scene-reset");
+    const roomFocusButtons = [...document.querySelectorAll(".room-focus-button")];
     const slotChips = [...document.querySelectorAll(".room-scene-chip")];
     const unlockedSlots = slotChips.filter((chip) => chip.dataset.unlocked === "true");
     const occupiedSlots = unlockedSlots.filter((chip) => chip.dataset.modelUrl);
@@ -752,12 +801,21 @@
         let isDragging = false;
         let dragStartX = 0;
         let dragStartY = 0;
-        let cameraDistance = 18.5;
-        let panOffsetX = 0;
-        let panOffsetY = 0;
+        const defaultCamera = {
+            orbitYaw: 0,
+            orbitPitch: -0.14,
+            distance: 18.5,
+            panX: 0,
+            panY: 0,
+        };
+        let cameraDistance = defaultCamera.distance;
+        let panOffsetX = defaultCamera.panX;
+        let panOffsetY = defaultCamera.panY;
         const panSensitivity = 0.012;
         const orbitSensitivity = 0.006;
         const lookTarget = new THREE.Vector3(0, 0.55, 0.5);
+        const clampPanX = (value) => THREE.MathUtils.clamp(value, -6.2, 6.2);
+        const clampPanY = (value) => THREE.MathUtils.clamp(value, -2.2, 2.4);
 
         const updateCamera = () => {
             const pitch = THREE.MathUtils.clamp(orbitPitch, -0.62, 0.46);
@@ -775,6 +833,30 @@
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
+        };
+
+        const resetRoomCamera = () => {
+            orbitYaw = defaultCamera.orbitYaw;
+            orbitPitch = defaultCamera.orbitPitch;
+            cameraDistance = defaultCamera.distance;
+            panOffsetX = defaultCamera.panX;
+            panOffsetY = defaultCamera.panY;
+            updateCamera();
+        };
+
+        const focusSlotInScene = (slotIndex) => {
+            const slotOffset = slotOffsets[slotIndex];
+            if (!slotOffset) {
+                resetRoomCamera();
+                return;
+            }
+
+            orbitYaw = 0;
+            orbitPitch = slotOffset.y > 0 ? -0.1 : -0.18;
+            cameraDistance = 11.2;
+            panOffsetX = clampPanX(slotOffset.x * 0.96);
+            panOffsetY = clampPanY(slotOffset.y > 0 ? 0.6 : -1.0);
+            updateCamera();
         };
 
         const styleModelMaterials = (root, tintHex) => {
@@ -887,8 +969,8 @@
             if (event.shiftKey) {
                 panOffsetX += deltaX * panSensitivity;
                 panOffsetY -= deltaY * panSensitivity;
-                panOffsetX = THREE.MathUtils.clamp(panOffsetX, -6.2, 6.2);
-                panOffsetY = THREE.MathUtils.clamp(panOffsetY, -2.2, 2.4);
+                panOffsetX = clampPanX(panOffsetX);
+                panOffsetY = clampPanY(panOffsetY);
             } else {
                 orbitYaw += deltaX * orbitSensitivity;
                 orbitPitch -= deltaY * 0.0048;
@@ -920,7 +1002,16 @@
         window.addEventListener("resize", resize);
         updateCamera();
 
+        if (roomSceneReset) {
+            roomSceneReset.addEventListener("click", resetRoomCamera);
+        }
+
         unlockedSlots.forEach((slotChip) => createShelfDisplay(slotChip));
+        roomFocusButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                focusSlotInScene(Number(button.dataset.focusSlot));
+            });
+        });
 
         const loadPromises = occupiedSlots.map((slotChip) => {
             return new Promise((resolve) => {
