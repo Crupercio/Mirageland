@@ -24,7 +24,7 @@
                                 <strong>Viewer Controls</strong>
                                 <button type="button" id="viewer-info-close" class="viewer-popover-close" aria-label="Close viewer help">x</button>
                             </div>
-                            <p class="muted">Drag to orbit. Hold <strong>Shift</strong> while dragging to pan. Use the mouse wheel to zoom, and use the buttons below for render modes, rotation, and reset.</p>
+                            <p class="muted">Drag to orbit. Hold <strong>Shift</strong> while dragging to pan. Use the mouse wheel to zoom, and use the buttons below for rotation, reset, and render modes.</p>
                         </div>
                     </div>
                 </div>
@@ -66,7 +66,7 @@
                     <div class="viewer-mode-group viewer-controls">
                         <button type="button" id="render-mode-normal" class="is-active">Normal</button>
                         <button type="button" id="render-mode-unlit">Unlit</button>
-                        <button type="button" id="render-mode-wireframe">Wire</button>
+                        <button type="button" id="render-mode-wireframe">Wireframe</button>
                     </div>
                 </div>
             </div>
@@ -128,7 +128,7 @@
             <section class="panel stack-md">
                 <h2>Viewer Notes</h2>
                 <div class="sub-panel">
-                    <p class="muted">Wire keeps the original textured model visible and overlays the topology instead of flattening the character into a plain mesh.</p>
+                    <p class="muted">Wireframe keeps the original textured model visible and lays a full triangle cage over the surface, so the geometry reads clearly without losing the color pass.</p>
                 </div>
                 <div class="sub-panel">
                     <p class="muted">Next strong upgrade: pose switching, lighting presets, and a room-themed viewer backdrop.</p>
@@ -224,6 +224,17 @@
                 opacity: material.opacity ?? 1,
                 side: material.side,
                 alphaTest: material.alphaTest || 0,
+            });
+        };
+
+        const buildWireframeMaterial = (material) => {
+            return new THREE.MeshBasicMaterial({
+                color: material.color ? material.color.clone().multiplyScalar(0.78) : new THREE.Color(0x7d8fb3),
+                wireframe: true,
+                transparent: true,
+                opacity: material.transparent ? Math.min((material.opacity ?? 1) * 0.95, 0.95) : 0.9,
+                depthWrite: false,
+                side: THREE.DoubleSide,
             });
         };
 
@@ -447,18 +458,16 @@
                                     ? originalMaterial.map((material) => buildUnlitMaterial(material))
                                     : buildUnlitMaterial(originalMaterial);
 
-                                const overlay = new THREE.LineSegments(
-                                    new THREE.WireframeGeometry(node.geometry),
-                                    new THREE.LineBasicMaterial({
-                                        color: 0xf7f0de,
-                                        transparent: true,
-                                        opacity: 0.34,
-                                        depthWrite: false,
-                                    })
-                                );
+                                const wireframeMaterial = Array.isArray(originalMaterial)
+                                    ? originalMaterial.map((material) => buildWireframeMaterial(material))
+                                    : buildWireframeMaterial(originalMaterial);
+
+                                const overlay = new THREE.Mesh(node.geometry, wireframeMaterial);
                                 overlay.userData.viewerOverlay = true;
                                 overlay.visible = false;
                                 overlay.renderOrder = 2;
+                                overlay.scale.setScalar(1.001);
+                                overlay.frustumCulled = false;
                                 node.add(overlay);
 
                                 meshEntries.push({
