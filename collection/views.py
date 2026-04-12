@@ -4,8 +4,18 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import DisplayRoom, OwnedVariant
-from .services import ROOM_THEMES, ensure_display_room, place_owned_variant, update_room_theme
-from .services import toggle_room_reaction
+from .services import (
+    ROOM_THEMES,
+    can_unlock_slot,
+    ensure_display_room,
+    get_room_slots,
+    group_slots_by_shelf,
+    place_owned_variant,
+    slot_unlock_label,
+    toggle_room_reaction,
+    unlock_room_slot,
+    update_room_theme,
+)
 
 
 @login_required
@@ -15,9 +25,15 @@ def room_detail(request):
     room = ensure_display_room(collector)
     room = (
         DisplayRoom.objects.select_related("user")
-        .prefetch_related("slots__owned_variant__variant")
+        .prefetch_related("slots__owned_variant__variant__character")
         .get(id=room.id)
     )
+    room_slots = get_room_slots(room)
+    for slot in room_slots:
+        slot.can_unlock = can_unlock_slot(room, slot)
+        slot.unlock_label = slot_unlock_label(slot)
+        slot.coins_short = max(slot.unlock_cost - collector.coins, 0)
+
     owned_variants = (
         OwnedVariant.objects.filter(user=collector)
         .select_related("variant", "variant__character")
@@ -27,10 +43,13 @@ def room_detail(request):
     context = {
         "collector": collector,
         "room": room,
+        "room_slots": room_slots,
+        "room_shelves": group_slots_by_shelf(room_slots),
         "owned_variants": owned_variants,
         "room_themes": ROOM_THEMES,
         "current_theme_label": ROOM_THEMES.get(room.theme_slug, "Warm Library"),
         "has_reacted": str(room.id) in request.session.get("reacted_room_ids", []),
+        "unlocked_slot_count": sum(1 for slot in room_slots if slot.is_unlocked),
     }
     return render(request, "collection/room.html", context)
 
@@ -46,6 +65,19 @@ def room_place_variant(request, slot_index: int):
         place_owned_variant(collector, slot_index=slot_index, owned_variant_id=parsed_id)
     except (ValueError, OwnedVariant.DoesNotExist):
         return HttpResponseBadRequest("Could not place that variant in the selected slot.")
+
+    return redirect("collection:room-detail")
+
+
+@login_required
+@require_POST
+def room_unlock_slot(request, slot_index: int):
+    collector = request.user
+
+    try:
+        unlock_room_slot(collector, slot_index=slot_index)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
 
     return redirect("collection:room-detail")
 

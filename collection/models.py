@@ -56,6 +56,11 @@ class ShelfSlot(models.Model):
         related_name="slots",
     )
     slot_index = models.PositiveSmallIntegerField()
+    shelf_index = models.PositiveSmallIntegerField(default=1)
+    slot_code = models.CharField(max_length=12, default="c")
+    display_order = models.PositiveSmallIntegerField(default=1)
+    is_unlocked = models.BooleanField(default=False)
+    unlock_cost = models.PositiveIntegerField(default=0)
     owned_variant = models.OneToOneField(
         OwnedVariant,
         on_delete=models.SET_NULL,
@@ -65,13 +70,17 @@ class ShelfSlot(models.Model):
     )
 
     class Meta:
-        ordering = ["room", "slot_index"]
+        ordering = ["room", "shelf_index", "display_order", "slot_index"]
         constraints = [
             models.UniqueConstraint(
                 fields=["room", "slot_index"],
                 name="unique_slot_index_per_room",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["room", "shelf_index", "slot_code"],
+                name="unique_slot_code_per_shelf",
+            ),
         ]
 
     def __str__(self) -> str:
-        return f"{self.room.user.username} slot {self.slot_index}"
+        return f"{self.room.user.username} shelf {self.shelf_index} {self.slot_code}"

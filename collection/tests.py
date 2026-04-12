@@ -4,7 +4,13 @@ from django.test import TestCase
 from accounts.models import User
 from catalogue.models import Character, Variant, VariantRarity, VariantSceneType
 from collection.models import OwnedVariant
-from collection.services import ensure_display_room, place_owned_variant, toggle_room_reaction, update_room_theme
+from collection.services import (
+    ensure_display_room,
+    place_owned_variant,
+    toggle_room_reaction,
+    unlock_room_slot,
+    update_room_theme,
+)
 
 
 class OwnedVariantModelTests(TestCase):
@@ -37,11 +43,14 @@ class OwnedVariantModelTests(TestCase):
         room = ensure_display_room(self.user)
 
         self.assertEqual(room.theme_slug, "warm-library")
-        self.assertEqual(room.slots.count(), 6)
+        self.assertEqual(room.slots.count(), 10)
+        self.assertEqual(room.slots.filter(is_unlocked=True).count(), 1)
+        self.assertTrue(room.slots.get(slot_index=2).is_unlocked)
 
     def test_placing_variant_moves_it_between_slots(self):
         owned_variant = OwnedVariant.objects.create(user=self.user, variant=self.variant)
         room = ensure_display_room(self.user)
+        room.slots.filter(slot_index__in=[1, 3]).update(is_unlocked=True)
 
         place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant.id)
         place_owned_variant(self.user, slot_index=3, owned_variant_id=owned_variant.id)
@@ -49,6 +58,40 @@ class OwnedVariantModelTests(TestCase):
         room.refresh_from_db()
         self.assertIsNone(room.slots.get(slot_index=1).owned_variant)
         self.assertEqual(room.slots.get(slot_index=3).owned_variant, owned_variant)
+
+    def test_locked_slot_cannot_receive_variant(self):
+        owned_variant = OwnedVariant.objects.create(user=self.user, variant=self.variant)
+        ensure_display_room(self.user)
+
+        with self.assertRaises(ValueError):
+            place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant.id)
+
+    def test_unlock_slot_spends_coins(self):
+        self.user.coins = 20
+        self.user.save(update_fields=["coins"])
+        room = ensure_display_room(self.user)
+
+        unlocked_slot = unlock_room_slot(self.user, slot_index=1)
+        self.user.refresh_from_db()
+        room.refresh_from_db()
+
+        self.assertTrue(unlocked_slot.is_unlocked)
+        self.assertEqual(self.user.coins, 5)
+        self.assertTrue(room.slots.get(slot_index=1).is_unlocked)
+
+    def test_second_shelf_center_requires_first_shelf_progress(self):
+        self.user.coins = 100
+        self.user.save(update_fields=["coins"])
+        ensure_display_room(self.user)
+
+        with self.assertRaises(ValueError):
+            unlock_room_slot(self.user, slot_index=5)
+
+        unlock_room_slot(self.user, slot_index=1)
+        unlock_room_slot(self.user, slot_index=3)
+        unlocked_slot = unlock_room_slot(self.user, slot_index=5)
+
+        self.assertTrue(unlocked_slot.is_unlocked)
 
     def test_room_visibility_can_be_updated(self):
         room = ensure_display_room(self.user)

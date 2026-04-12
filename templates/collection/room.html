@@ -35,8 +35,8 @@
                     <span>Visibility</span>
                 </div>
                 <div class="room-stat-pill">
-                    <strong>{{ room.slots.count }}</strong>
-                    <span>Shelves</span>
+                    <strong>{{ collector.coins }}</strong>
+                    <span>Coins</span>
                 </div>
             </div>
         </div>
@@ -57,11 +57,14 @@
             </div>
             <div class="room-scene-overlay">
                 <div class="room-scene-legend">
-                    {% for slot in room.slots.all %}
+                    {% for slot in room_slots %}
                         <div
-                            class="room-scene-chip {% if slot.owned_variant %}is-filled{% else %}is-empty{% endif %}"
+                            class="room-scene-chip {% if slot.is_unlocked and slot.owned_variant %}is-filled{% elif slot.is_unlocked %}is-ready{% else %}is-locked{% endif %}"
                             data-slot-index="{{ slot.slot_index }}"
-                            {% if slot.owned_variant %}
+                            data-unlocked="{{ slot.is_unlocked|yesno:'true,false' }}"
+                            data-shelf-index="{{ slot.shelf_index }}"
+                            data-slot-code="{{ slot.slot_code }}"
+                            {% if slot.is_unlocked and slot.owned_variant %}
                                 data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
                                 data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
                                 data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
@@ -69,13 +72,16 @@
                                 data-character-name="{{ slot.owned_variant.variant.character.name }}"
                             {% endif %}
                         >
-                            <span class="pill">Slot {{ slot.slot_index }}</span>
-                            {% if slot.owned_variant %}
+                            <span class="pill">Shelf {{ slot.shelf_index }} · {{ slot.slot_code|upper }}</span>
+                            {% if slot.is_unlocked and slot.owned_variant %}
                                 <strong>{{ slot.owned_variant.variant.name }}</strong>
                                 <p class="muted">{{ slot.owned_variant.variant.character.name }}</p>
+                            {% elif slot.is_unlocked %}
+                                <strong>Ready for display</strong>
+                                <p class="muted">Unlocked empty slot</p>
                             {% else %}
-                                <strong>Empty shelf</strong>
-                                <p class="muted">Waiting for a figurine</p>
+                                <strong>{{ slot.unlock_label }}</strong>
+                                <p class="muted">{{ slot.unlock_cost }} coins</p>
                             {% endif %}
                         </div>
                     {% endfor %}
@@ -142,42 +148,79 @@
             {% endif %}
         </p>
 
-        <div class="room-control-grid">
-            {% for slot in room.slots.all %}
-                <section class="sub-panel stack-sm room-slot-card">
+        <div class="room-shelf-sections">
+            {% for shelf in room_shelves %}
+                <section class="sub-panel stack-md room-shelf-section">
                     <div class="split">
-                        <strong>Slot {{ slot.slot_index }}</strong>
-                        {% if slot.owned_variant %}
-                            <span class="pill success">Occupied</span>
-                        {% else %}
-                            <span class="pill">Empty</span>
-                        {% endif %}
+                        <div>
+                            <strong>{{ shelf.label }}</strong>
+                            <p class="muted">{{ shelf.unlocked_count }} / {{ shelf.total_count }} slots unlocked</p>
+                        </div>
+                        <span class="pill">{{ shelf.unlocked_count }} active</span>
                     </div>
 
-                    {% if slot.owned_variant %}
-                        <p>{{ slot.owned_variant.variant.name }}</p>
-                    {% else %}
-                        <p class="muted">Choose an owned variant to populate this shelf.</p>
-                    {% endif %}
+                    <div class="room-control-grid">
+                        {% for slot in shelf.slots %}
+                            <section class="sub-panel stack-sm room-slot-card {% if not slot.is_unlocked %}is-locked-slot{% endif %}">
+                                <div class="split">
+                                    <strong>{{ slot.slot_code|upper }}</strong>
+                                    {% if slot.is_unlocked and slot.owned_variant %}
+                                        <span class="pill success">Occupied</span>
+                                    {% elif slot.is_unlocked %}
+                                        <span class="pill">Ready</span>
+                                    {% elif slot.can_unlock %}
+                                        <span class="pill">Available</span>
+                                    {% else %}
+                                        <span class="pill">Locked</span>
+                                    {% endif %}
+                                </div>
 
-                    <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
-                        {% csrf_token %}
-                        <label class="field" for="owned_variant_{{ slot.slot_index }}">
-                            <span>Variant</span>
-                            <select id="owned_variant_{{ slot.slot_index }}" name="owned_variant_id">
-                                <option value="">Clear slot</option>
-                                {% for owned_variant in owned_variants %}
-                                    <option
-                                        value="{{ owned_variant.id }}"
-                                        {% if slot.owned_variant and slot.owned_variant.id == owned_variant.id %}selected{% endif %}
-                                    >
-                                        {{ owned_variant.variant.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </label>
-                        <button type="submit">Save slot</button>
-                    </form>
+                                {% if slot.is_unlocked %}
+                                    {% if slot.owned_variant %}
+                                        <p>{{ slot.owned_variant.variant.name }}</p>
+                                    {% else %}
+                                        <p class="muted">Unlocked and ready for a figurine.</p>
+                                    {% endif %}
+
+                                    <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
+                                        {% csrf_token %}
+                                        <label class="field" for="owned_variant_{{ slot.slot_index }}">
+                                            <span>Variant</span>
+                                            <select id="owned_variant_{{ slot.slot_index }}" name="owned_variant_id">
+                                                <option value="">Clear slot</option>
+                                                {% for owned_variant in owned_variants %}
+                                                    <option
+                                                        value="{{ owned_variant.id }}"
+                                                        {% if slot.owned_variant and slot.owned_variant.id == owned_variant.id %}selected{% endif %}
+                                                    >
+                                                        {{ owned_variant.variant.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <button type="submit">Save slot</button>
+                                    </form>
+                                {% else %}
+                                    <p class="muted">
+                                        {% if slot.can_unlock %}
+                                            Spend {{ slot.unlock_cost }} coins to unlock this display position.
+                                        {% else %}
+                                            Expand the earlier positions on this shelf first.
+                                        {% endif %}
+                                    </p>
+                                    <form method="post" action="{% url 'collection:room-unlock-slot' slot.slot_index %}">
+                                        {% csrf_token %}
+                                        <button type="submit" {% if not slot.can_unlock or collector.coins < slot.unlock_cost %}disabled{% endif %}>
+                                            {{ slot.unlock_label }} · {{ slot.unlock_cost }} coins
+                                        </button>
+                                    </form>
+                                    {% if slot.can_unlock and collector.coins < slot.unlock_cost %}
+                                        <p class="muted">You need {{ slot.coins_short }} more coins.</p>
+                                    {% endif %}
+                                {% endif %}
+                            </section>
+                        {% endfor %}
+                    </div>
                 </section>
             {% endfor %}
         </div>
@@ -418,7 +461,7 @@
 
     .room-scene-legend {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 10px;
     }
 
@@ -450,6 +493,16 @@
 
     .room-scene-chip.is-empty {
         opacity: 0.86;
+    }
+
+    .room-scene-chip.is-ready {
+        background: linear-gradient(180deg, rgba(105, 211, 184, 0.08), rgba(12, 17, 27, 0.58));
+        border-color: rgba(105, 211, 184, 0.22);
+    }
+
+    .room-scene-chip.is-locked {
+        opacity: 0.68;
+        border-style: dashed;
     }
 
     .room-controls-panel {
@@ -495,8 +548,21 @@
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 
+    .room-shelf-sections {
+        display: grid;
+        gap: 16px;
+    }
+
+    .room-shelf-section {
+        padding: 18px;
+    }
+
     .room-slot-card {
         padding: 18px;
+    }
+
+    .room-slot-card.is-locked-slot {
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
     }
 
     .room-theme-warm-library .room-scene-backdrop {
@@ -538,7 +604,7 @@
         }
 
         .room-scene-legend {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
     }
 
@@ -578,7 +644,7 @@
         }
 
         .room-scene-legend {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .room-title-row {
@@ -612,7 +678,8 @@
     const roomCanvas = document.getElementById("room-scene-canvas");
     const roomFallback = document.getElementById("room-scene-fallback");
     const slotChips = [...document.querySelectorAll(".room-scene-chip")];
-    const occupiedSlots = slotChips.filter((chip) => chip.dataset.modelUrl);
+    const unlockedSlots = slotChips.filter((chip) => chip.dataset.unlocked === "true");
+    const occupiedSlots = unlockedSlots.filter((chip) => chip.dataset.modelUrl);
 
     const roomTheme = roomShell?.dataset.roomTheme || "warm-library";
     const roomPresets = {
@@ -660,12 +727,16 @@
     const topShelfY = 1.35;
     const bottomShelfY = -1.25;
     const slotOffsets = {
-        1: { x: -4.7, y: topShelfY, z: 0.1 },
+        7: { x: -6.2, y: topShelfY, z: 0.1 },
+        1: { x: -3.1, y: topShelfY, z: 0.1 },
         2: { x: 0, y: topShelfY, z: 0.1 },
-        3: { x: 4.7, y: topShelfY, z: 0.1 },
-        4: { x: -4.7, y: bottomShelfY, z: 0.1 },
+        3: { x: 3.1, y: topShelfY, z: 0.1 },
+        8: { x: 6.2, y: topShelfY, z: 0.1 },
+        9: { x: -6.2, y: bottomShelfY, z: 0.1 },
+        4: { x: -3.1, y: bottomShelfY, z: 0.1 },
         5: { x: 0, y: bottomShelfY, z: 0.1 },
-        6: { x: 4.7, y: bottomShelfY, z: 0.1 },
+        6: { x: 3.1, y: bottomShelfY, z: 0.1 },
+        10: { x: 6.2, y: bottomShelfY, z: 0.1 },
     };
 
     if (roomInfoToggle && roomInfoPopover && roomInfoClose) {
@@ -685,7 +756,7 @@
         });
     }
 
-    if (roomCanvas && occupiedSlots.length > 0) {
+    if (roomCanvas && unlockedSlots.length > 0) {
         const preset = roomPresets[roomTheme] || roomPresets["warm-library"];
         roomCanvas.style.background = preset.background;
 
@@ -749,7 +820,15 @@
             metalness: 0.05,
             roughness: 0.78,
         });
+        const emptyPedestalMaterial = new THREE.MeshPhysicalMaterial({
+            color: "#d9cfbf",
+            metalness: 0.03,
+            roughness: 0.84,
+            transparent: true,
+            opacity: 0.92,
+        });
         const animatedAnchors = [];
+        const slotAnchors = new Map();
         let orbitYaw = 0;
         let orbitPitch = -0.14;
         let isDragging = false;
@@ -822,21 +901,26 @@
                 });
         };
 
-        const placeModelInSlot = (root, slotIndex, tintHex) => {
+        const createShelfDisplay = (slotChip) => {
+            const slotIndex = Number(slotChip.dataset.slotIndex);
             const slotOffset = slotOffsets[slotIndex] || slotOffsets[1];
             const anchor = new THREE.Group();
             anchor.position.set(slotOffset.x, slotOffset.y, slotOffset.z);
 
             const pedestal = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.82, 1.02, 0.2, 40),
-                pedestalMaterial
+                slotChip.dataset.modelUrl ? pedestalMaterial : emptyPedestalMaterial
             );
             pedestal.position.set(0, 0.19, 0);
             anchor.add(pedestal);
 
             const halo = new THREE.Mesh(
                 new THREE.TorusGeometry(1.14, 0.02, 20, 80),
-                new THREE.MeshBasicMaterial({ color: preset.haloColor, transparent: true, opacity: 0.72 })
+                new THREE.MeshBasicMaterial({
+                    color: preset.haloColor,
+                    transparent: true,
+                    opacity: slotChip.dataset.modelUrl ? 0.72 : 0.34,
+                })
             );
             halo.rotation.x = Math.PI / 2;
             halo.position.set(0, 0.31, 0);
@@ -844,7 +928,18 @@
 
             const modelGroup = new THREE.Group();
             anchor.add(modelGroup);
+            roomGroup.add(anchor);
+            slotAnchors.set(slotIndex, { anchor, pedestal, halo, modelGroup });
+            animatedAnchors.push({ anchor, halo, modelGroup, slotIndex, hasModel: Boolean(slotChip.dataset.modelUrl) });
+        };
 
+        const placeModelInSlot = (root, slotIndex, tintHex) => {
+            const anchorParts = slotAnchors.get(slotIndex);
+            if (!anchorParts) {
+                return;
+            }
+
+            const { modelGroup, pedestal } = anchorParts;
             stripEmbeddedDisplayBase(root);
             const initialBox = new THREE.Box3().setFromObject(root);
             const initialSize = initialBox.getSize(new THREE.Vector3());
@@ -861,8 +956,6 @@
 
             styleModelMaterials(root, tintHex);
             modelGroup.add(root);
-            roomGroup.add(anchor);
-            animatedAnchors.push({ anchor, halo, modelGroup, slotIndex });
         };
 
         roomCanvas.addEventListener("pointerdown", (event) => {
@@ -909,6 +1002,8 @@
         window.addEventListener("resize", resize);
         updateCamera();
 
+        unlockedSlots.forEach((slotChip) => createShelfDisplay(slotChip));
+
         const loadPromises = occupiedSlots.map((slotChip) => {
             return new Promise((resolve) => {
                 loader.load(
@@ -936,19 +1031,19 @@
         const clock = new THREE.Clock();
         const animate = () => {
             const elapsed = clock.getElapsedTime();
-            animatedAnchors.forEach(({ anchor, halo, modelGroup, slotIndex }, index) => {
+            animatedAnchors.forEach(({ anchor, halo, modelGroup, slotIndex, hasModel }, index) => {
                 anchor.rotation.y = Math.sin(elapsed * 0.28 + index * 0.5) * 0.16;
                 anchor.position.y = slotOffsets[slotIndex]?.y || 0;
-                modelGroup.position.y = Math.sin(elapsed * 1.15 + index) * 0.03;
+                modelGroup.position.y = hasModel ? Math.sin(elapsed * 1.15 + index) * 0.03 : 0;
                 halo.rotation.z = elapsed * 0.18 + index * 0.24;
             });
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         };
         animate();
-    } else if (roomFallback && occupiedSlots.length === 0) {
-        roomFallback.querySelector("strong").textContent = "No figurines placed yet";
-        roomFallback.querySelector("span").textContent = "Save a variant into any shelf slot below and the shared room scene will appear here.";
+    } else if (roomFallback && unlockedSlots.length === 0) {
+        roomFallback.querySelector("strong").textContent = "No display slots unlocked yet";
+        roomFallback.querySelector("span").textContent = "Unlock your first shelf position below to start building the room.";
     }
 </script>
 {% endblock %}
