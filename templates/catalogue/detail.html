@@ -135,7 +135,7 @@
                     {% if selected_variant_owned %}
                         <p class="muted">Owned variants unlock the full viewer: standard, unlit, and wireframe modes all stay available for inspection.</p>
                     {% else %}
-                        <p class="muted">Locked variants open in a cyan hologram preview so players can imagine the reward without seeing the full unlocked presentation yet.</p>
+                        <p class="muted">Locked variants open as a full cyan hologram preview with softened detail, so players can read the silhouette without seeing the full textured reward yet.</p>
                     {% endif %}
                 </div>
                 <div class="sub-panel">
@@ -284,14 +284,30 @@
 
         const buildHologramWireMaterial = (material) => {
             return copyFlags(material, new THREE.MeshBasicMaterial({
-                ...getSharedMaterialProps(material),
                 color: new THREE.Color(0x72f6ff),
                 wireframe: true,
                 transparent: true,
-                opacity: 0.92,
+                opacity: 0.72,
                 side: THREE.DoubleSide,
                 depthWrite: false,
             }));
+        };
+
+        const buildHologramSurfaceMaterial = (material) => {
+            return copyFlags(material, new THREE.MeshBasicMaterial({
+                color: new THREE.Color(0x6be7ff),
+                transparent: true,
+                opacity: 0.34,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+            }));
+        };
+
+        const syncViewerEffects = () => {
+            if (!stage) {
+                return;
+            }
+            stage.style.filter = renderMode === "hologram" ? "blur(1.4px) saturate(1.08)" : "none";
         };
 
         const setMode = (mode) => {
@@ -303,14 +319,19 @@
             meshEntries.forEach((entry) => {
                 if (mode === "normal") {
                     entry.mesh.material = entry.originalMaterial;
+                    entry.hologramOverlay.visible = false;
                 } else if (mode === "unlit") {
                     entry.mesh.material = entry.unlitMaterial;
+                    entry.hologramOverlay.visible = false;
                 } else if (mode === "hologram") {
-                    entry.mesh.material = entry.hologramWireMaterial;
+                    entry.mesh.material = entry.hologramSurfaceMaterial;
+                    entry.hologramOverlay.visible = true;
                 } else {
                     entry.mesh.material = entry.wireframeMaterial;
+                    entry.hologramOverlay.visible = false;
                 }
             });
+            syncViewerEffects();
         };
 
         const updateCamera = () => {
@@ -524,12 +545,26 @@
                                     ? originalMaterial.map((material) => buildHologramWireMaterial(material))
                                     : buildHologramWireMaterial(originalMaterial);
 
+                                const hologramSurfaceMaterial = Array.isArray(originalMaterial)
+                                    ? originalMaterial.map((material) => buildHologramSurfaceMaterial(material))
+                                    : buildHologramSurfaceMaterial(originalMaterial);
+
+                                const hologramOverlay = new THREE.Mesh(node.geometry, hologramWireMaterial);
+                                hologramOverlay.userData.viewerOverlay = true;
+                                hologramOverlay.visible = false;
+                                hologramOverlay.renderOrder = 2;
+                                hologramOverlay.scale.setScalar(1.0011);
+                                hologramOverlay.frustumCulled = false;
+                                node.add(hologramOverlay);
+
                                 meshEntries.push({
                                     mesh: node,
                                     originalMaterial,
                                     unlitMaterial,
                                     wireframeMaterial,
+                                    hologramSurfaceMaterial,
                                     hologramWireMaterial,
+                                    hologramOverlay,
                                 });
                             }
                         });
