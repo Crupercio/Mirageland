@@ -29,52 +29,46 @@
                 </div>
             </div>
 
-            <div class="room-scene room-theme-{{ room.theme_slug|slugify }}" data-room-theme="{{ room.theme_slug }}">
+            <div id="room-scene-shell" class="room-scene room-theme-{{ room.theme_slug|slugify }}" data-room-theme="{{ room.theme_slug }}">
                 <div class="room-scene-backdrop"></div>
                 <div class="room-scene-glow"></div>
                 <div class="room-scene-wall"></div>
-                <div class="room-shelves">
-                    {% for slot in room.slots.all %}
-                        <section class="room-slot-card {% if slot.owned_variant %}is-filled{% else %}is-empty{% endif %}">
-                            <div class="room-slot-header">
+                <div id="room-scene-canvas" class="room-scene-canvas">
+                    <div id="room-scene-fallback" class="room-scene-fallback">
+                        <strong>Room preview loading...</strong>
+                        <span class="muted">Placed figurines will appear here together once the scene is ready.</span>
+                    </div>
+                </div>
+                <div class="room-scene-overlay">
+                    <div class="room-scene-copy">
+                        <span class="eyebrow">Unified Display Scene</span>
+                        <h2>Placed Figurines</h2>
+                        <p class="muted">Every occupied slot now loads into one shared room view. Drag to orbit and use the wheel to zoom.</p>
+                    </div>
+                    <div class="room-scene-legend">
+                        {% for slot in room.slots.all %}
+                            <div
+                                class="room-scene-chip {% if slot.owned_variant %}is-filled{% else %}is-empty{% endif %}"
+                                data-slot-index="{{ slot.slot_index }}"
+                                {% if slot.owned_variant %}
+                                    data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
+                                    data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
+                                    data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
+                                    data-variant-name="{{ slot.owned_variant.variant.name }}"
+                                    data-character-name="{{ slot.owned_variant.variant.character.name }}"
+                                {% endif %}
+                            >
                                 <span class="pill">Slot {{ slot.slot_index }}</span>
                                 {% if slot.owned_variant %}
-                                    <span class="pill success">{{ slot.owned_variant.variant.character.name }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="room-slot-stage">
-                                {% if slot.owned_variant %}
-                                    <div
-                                        class="room-mini-viewer"
-                                        data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
-                                        data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
-                                        data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
-                                        data-theme="{{ room.theme_slug }}"
-                                    >
-                                        <div class="room-mini-fallback">
-                                            <strong>{{ slot.owned_variant.variant.name }}</strong>
-                                            <span class="muted">Preview loading...</span>
-                                        </div>
-                                    </div>
-                                {% else %}
-                                    <div class="room-slot-empty-state">
-                                        <span class="room-slot-orb"></span>
-                                        <strong>Open shelf space</strong>
-                                        <p class="muted">Place a figurine here to bring the room to life.</p>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="room-slot-meta">
-                                {% if slot.owned_variant %}
                                     <strong>{{ slot.owned_variant.variant.name }}</strong>
-                                    <p class="muted">{{ slot.owned_variant.variant.short_description }}</p>
+                                    <p class="muted">{{ slot.owned_variant.variant.character.name }}</p>
                                 {% else %}
-                                    <strong>Empty slot</strong>
-                                    <p class="muted">Ready for any owned variant.</p>
+                                    <strong>Empty shelf</strong>
+                                    <p class="muted">Waiting for a figurine</p>
                                 {% endif %}
                             </div>
-                        </section>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
                 <div class="room-floor"></div>
             </div>
@@ -217,12 +211,12 @@
     .room-scene {
         position: relative;
         overflow: hidden;
-        min-height: 980px;
+        min-height: 860px;
         border-radius: 30px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: linear-gradient(180deg, rgba(19, 24, 36, 0.98), rgba(15, 18, 28, 0.98));
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-        padding: 28px 24px 44px;
+        padding: 22px 20px 160px;
     }
 
     .room-scene-backdrop,
@@ -272,114 +266,85 @@
         border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .room-shelves {
+    .room-scene-canvas {
         position: relative;
         z-index: 1;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 26px;
-        padding: 60px 14px 90px;
-    }
-
-    .room-slot-card {
-        position: relative;
-        min-height: 360px;
-        padding: 16px;
-        border-radius: 26px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: linear-gradient(180deg, rgba(9, 13, 22, 0.34), rgba(255, 255, 255, 0.02));
-        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
-    }
-
-    .room-slot-card::after {
-        content: "";
-        position: absolute;
-        left: 8%;
-        right: 8%;
-        bottom: -16px;
-        height: 22px;
-        border-radius: 999px;
-        background: radial-gradient(circle, rgba(0, 0, 0, 0.35), transparent 70%);
-        pointer-events: none;
-    }
-
-    .room-slot-card.is-filled {
-        background:
-            radial-gradient(circle at top, rgba(240, 163, 107, 0.08), transparent 24%),
-            linear-gradient(180deg, rgba(18, 22, 33, 0.72), rgba(255, 255, 255, 0.02));
-    }
-
-    .room-slot-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 14px;
-    }
-
-    .room-slot-stage {
-        position: relative;
-        min-height: 220px;
-        border-radius: 22px;
+        min-height: 560px;
+        border-radius: 28px;
         overflow: hidden;
         background:
-            radial-gradient(circle at 50% 18%, rgba(255, 223, 175, 0.14), transparent 28%),
-            linear-gradient(180deg, rgba(19, 24, 36, 0.95), rgba(20, 28, 42, 0.98));
-        border: 1px solid rgba(255, 255, 255, 0.06);
+            radial-gradient(circle at 50% 16%, rgba(255, 227, 176, 0.12), transparent 26%),
+            linear-gradient(180deg, rgba(16, 20, 30, 0.9), rgba(14, 18, 28, 0.94));
+        border: 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    .room-slot-stage::after {
-        content: "";
-        position: absolute;
-        inset: auto 10% 12px;
-        height: 12px;
-        border-radius: 999px;
-        background: radial-gradient(circle, rgba(255, 204, 112, 0.22), transparent 70%);
-        pointer-events: none;
-    }
-
-    .room-mini-viewer,
-    .room-slot-empty-state {
-        position: absolute;
-        inset: 0;
-    }
-
-    .room-mini-viewer {
-        display: block;
-    }
-
-    .room-mini-viewer canvas {
+    .room-scene-canvas canvas {
         width: 100%;
         height: 100%;
         display: block;
     }
 
-    .room-mini-fallback {
-        position: absolute;
-        left: 16px;
-        right: 16px;
-        bottom: 16px;
-        display: grid;
-        gap: 4px;
+    .room-scene-fallback {
+        position: relative;
         z-index: 1;
-    }
-
-    .room-slot-empty-state {
         display: grid;
         place-items: center;
         text-align: center;
-        padding: 22px;
-        gap: 12px;
+        gap: 6px;
+        height: 100%;
+        min-height: 560px;
+        padding: 24px;
     }
 
-    .room-slot-orb {
-        width: 76px;
-        height: 76px;
-        border-radius: 50%;
-        background:
-            radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), transparent 34%),
-            radial-gradient(circle, rgba(120, 227, 255, 0.28), rgba(120, 227, 255, 0.04));
-        box-shadow: 0 0 30px rgba(120, 227, 255, 0.18);
+    .room-scene-overlay {
+        position: absolute;
+        inset: 24px 24px 180px;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 18px;
+        align-items: end;
+        pointer-events: none;
+    }
+
+    .room-scene-copy {
+        align-self: start;
+        padding: 18px 18px 20px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(12, 17, 27, 0.52);
+        backdrop-filter: blur(10px);
+    }
+
+    .room-scene-copy h2 {
+        margin: 14px 0 8px;
+    }
+
+    .room-scene-legend {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        align-self: end;
+    }
+
+    .room-scene-chip {
+        min-height: 94px;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(12, 17, 27, 0.54);
+        backdrop-filter: blur(8px);
+        display: grid;
+        gap: 6px;
+    }
+
+    .room-scene-chip.is-filled {
+        background: linear-gradient(180deg, rgba(240, 163, 107, 0.12), rgba(12, 17, 27, 0.58));
+        border-color: rgba(240, 163, 107, 0.26);
+    }
+
+    .room-scene-chip.is-empty {
+        opacity: 0.86;
     }
 
     .room-slot-meta {
@@ -390,6 +355,15 @@
         display: grid;
         gap: 16px;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .room-slot-preview-pill {
+        display: grid;
+        gap: 8px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
     }
 
     .room-theme-warm-library .room-scene-backdrop {
@@ -414,7 +388,13 @@
     }
 
     @media (max-width: 1080px) {
-        .room-shelves {
+        .room-scene-overlay {
+            grid-template-columns: 1fr;
+            inset: 18px 18px 170px;
+            align-items: start;
+        }
+
+        .room-scene-legend {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
@@ -422,11 +402,11 @@
     @media (max-width: 720px) {
         .room-scene {
             min-height: auto;
-            padding: 18px 14px 28px;
+            padding: 16px 12px 120px;
         }
 
         .room-scene-wall {
-            inset: 16px 14px 120px;
+            inset: 16px 12px 102px;
         }
 
         .room-floor {
@@ -434,9 +414,20 @@
             height: 110px;
         }
 
-        .room-shelves {
+        .room-scene-canvas {
+            min-height: 460px;
+        }
+
+        .room-scene-fallback {
+            min-height: 460px;
+        }
+
+        .room-scene-overlay {
+            inset: 16px 12px 132px;
+        }
+
+        .room-scene-legend {
             grid-template-columns: 1fr;
-            padding: 36px 4px 74px;
         }
     }
 </style>
@@ -453,155 +444,288 @@
     import * as THREE from "three";
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-    const miniViewers = document.querySelectorAll(".room-mini-viewer");
+    const roomShell = document.getElementById("room-scene-shell");
+    const roomCanvas = document.getElementById("room-scene-canvas");
+    const roomFallback = document.getElementById("room-scene-fallback");
+    const slotChips = [...document.querySelectorAll(".room-scene-chip")];
+    const occupiedSlots = slotChips.filter((chip) => chip.dataset.modelUrl);
 
-    const scenePresets = {
-        base: {
-            keyColor: 0xffefdb,
-            keyIntensity: 1.4,
+    const roomTheme = roomShell?.dataset.roomTheme || "warm-library";
+    const roomPresets = {
+        "warm-library": {
+            background: "radial-gradient(circle at 18% 16%, rgba(240, 163, 107, 0.16), transparent 24%), radial-gradient(circle at 82% 22%, rgba(245, 215, 164, 0.1), transparent 20%), linear-gradient(180deg, rgba(47, 57, 76, 0.96), rgba(20, 24, 35, 1))",
+            ambient: 1.14,
+            keyColor: 0xfff0da,
+            keyIntensity: 1.3,
             fillColor: 0xcfe0ff,
-            fillIntensity: 0.72,
+            fillIntensity: 0.78,
             rimColor: 0xf0b067,
-            rimIntensity: 0.55,
-            background: "radial-gradient(circle at 50% 18%, rgba(247, 214, 164, 0.16), transparent 28%), linear-gradient(180deg, rgba(21, 28, 42, 0.98), rgba(17, 22, 34, 0.98))",
+            rimIntensity: 0.52,
+            shelfColor: "#8f6a4b",
+            floorColor: "#ead4ac",
+            haloColor: 0xd4a843,
         },
-        school: {
-            keyColor: 0xf4f8ff,
-            keyIntensity: 1.34,
-            fillColor: 0xc8dcff,
-            fillIntensity: 0.88,
-            rimColor: 0x8fb7ff,
-            rimIntensity: 0.58,
-            background: "radial-gradient(circle at 50% 18%, rgba(188, 219, 255, 0.16), transparent 28%), linear-gradient(180deg, rgba(20, 30, 46, 0.98), rgba(16, 22, 34, 0.98))",
+        "city-loft": {
+            background: "radial-gradient(circle at 80% 18%, rgba(255, 147, 101, 0.16), transparent 22%), radial-gradient(circle at 24% 30%, rgba(119, 168, 255, 0.14), transparent 20%), linear-gradient(180deg, rgba(38, 35, 49, 0.96), rgba(17, 20, 31, 1))",
+            ambient: 1.06,
+            keyColor: 0xffeadc,
+            keyIntensity: 1.22,
+            fillColor: 0xb9cbff,
+            fillIntensity: 0.74,
+            rimColor: 0xff8b63,
+            rimIntensity: 0.74,
+            shelfColor: "#6d5963",
+            floorColor: "#d9c3b6",
+            haloColor: 0xff8a59,
         },
-        rainy_day: {
-            keyColor: 0xe5f7ff,
-            keyIntensity: 1.26,
-            fillColor: 0x9ecfd9,
-            fillIntensity: 0.84,
-            rimColor: 0x79d3df,
-            rimIntensity: 0.7,
-            background: "radial-gradient(circle at 50% 16%, rgba(123, 211, 223, 0.14), transparent 28%), linear-gradient(180deg, rgba(16, 25, 39, 0.98), rgba(12, 19, 31, 0.98))",
+        "night-studio": {
+            background: "radial-gradient(circle at 50% 14%, rgba(116, 226, 255, 0.14), transparent 24%), radial-gradient(circle at 76% 24%, rgba(176, 133, 255, 0.1), transparent 18%), linear-gradient(180deg, rgba(25, 31, 46, 0.96), rgba(11, 15, 24, 1))",
+            ambient: 1.0,
+            keyColor: 0xeefaff,
+            keyIntensity: 1.14,
+            fillColor: 0x9dd9ff,
+            fillIntensity: 0.66,
+            rimColor: 0x9f7cff,
+            rimIntensity: 0.82,
+            shelfColor: "#4f506d",
+            floorColor: "#cfcde1",
+            haloColor: 0x90cfff,
         },
     };
 
-    for (const element of miniViewers) {
-        const modelUrl = element.dataset.modelUrl;
-        const sceneType = element.dataset.sceneType || "base";
-        const preset = scenePresets[sceneType] || scenePresets.base;
-        element.style.background = preset.background;
+    const slotOffsets = {
+        1: { x: -5.2, y: 1.85, z: 0.1 },
+        2: { x: 0, y: 1.85, z: 0.1 },
+        3: { x: 5.2, y: 1.85, z: 0.1 },
+        4: { x: -5.2, y: -0.45, z: 0.1 },
+        5: { x: 0, y: -0.45, z: 0.1 },
+        6: { x: 5.2, y: -0.45, z: 0.1 },
+    };
+
+    if (roomCanvas && occupiedSlots.length > 0) {
+        const preset = roomPresets[roomTheme] || roomPresets["warm-library"];
+        roomCanvas.style.background = preset.background;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.setSize(element.clientWidth || 320, element.clientHeight || 220);
-        element.appendChild(renderer.domElement);
+        renderer.setSize(roomCanvas.clientWidth || 960, roomCanvas.clientHeight || 560);
+        roomCanvas.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(24, (element.clientWidth || 320) / (element.clientHeight || 220), 0.1, 100);
+        const camera = new THREE.PerspectiveCamera(28, (roomCanvas.clientWidth || 960) / (roomCanvas.clientHeight || 560), 0.1, 100);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 1.08);
+        const ambient = new THREE.AmbientLight(0xffffff, preset.ambient);
         const keyLight = new THREE.DirectionalLight(preset.keyColor, preset.keyIntensity);
-        keyLight.position.set(4.5, 6, 6.5);
+        keyLight.position.set(5.5, 8, 8);
         const fillLight = new THREE.DirectionalLight(preset.fillColor, preset.fillIntensity);
-        fillLight.position.set(-4.5, 3.2, 4.5);
+        fillLight.position.set(-6, 4, 6);
         const rimLight = new THREE.DirectionalLight(preset.rimColor, preset.rimIntensity);
-        rimLight.position.set(0, 3.2, -5);
+        rimLight.position.set(0, 5, -8);
         scene.add(ambient, keyLight, fillLight, rimLight);
 
-        const pedestal = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.9, 1.1, 0.22, 40),
+        const wall = new THREE.Mesh(
+            new THREE.BoxGeometry(18, 9.2, 0.2),
             new THREE.MeshPhysicalMaterial({
-                color: "#ead7b8",
-                metalness: 0.05,
-                roughness: 0.78,
+                color: "#2a3245",
+                roughness: 0.96,
+                metalness: 0.02,
             })
         );
-        pedestal.position.y = -1.12;
-        scene.add(pedestal);
+        wall.position.set(0, 1.5, -1.4);
+        scene.add(wall);
 
-        const halo = new THREE.Mesh(
-            new THREE.TorusGeometry(1.25, 0.024, 24, 100),
-            new THREE.MeshBasicMaterial({ color: 0xd4a843, transparent: true, opacity: 0.72 })
+        const floor = new THREE.Mesh(
+            new THREE.BoxGeometry(20, 0.34, 8.5),
+            new THREE.MeshPhysicalMaterial({
+                color: preset.floorColor,
+                roughness: 0.8,
+                metalness: 0.04,
+            })
         );
-        halo.rotation.x = Math.PI / 2;
-        halo.position.y = -0.98;
-        scene.add(halo);
+        floor.position.set(0, -2.65, 1.2);
+        scene.add(floor);
 
+        const shelfMaterial = new THREE.MeshPhysicalMaterial({
+            color: preset.shelfColor,
+            roughness: 0.7,
+            metalness: 0.08,
+        });
+        const shelfRows = [1.2, -1.1];
+        for (const y of shelfRows) {
+            const board = new THREE.Mesh(new THREE.BoxGeometry(16.5, 0.18, 1.4), shelfMaterial);
+            board.position.set(0, y, 0.6);
+            scene.add(board);
+        }
+
+        const roomGroup = new THREE.Group();
+        scene.add(roomGroup);
         const loader = new GLTFLoader();
-        let anchor = null;
+        const pedestalMaterial = new THREE.MeshPhysicalMaterial({
+            color: "#ead7b8",
+            metalness: 0.05,
+            roughness: 0.78,
+        });
+        const animatedAnchors = [];
+        let orbitYaw = 0;
+        let orbitPitch = -0.14;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let cameraDistance = 19;
+        const lookTarget = new THREE.Vector3(0, 0.7, 0.5);
+
+        const updateCamera = () => {
+            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.45, 0.3);
+            const x = Math.sin(orbitYaw) * Math.cos(pitch) * cameraDistance;
+            const y = Math.sin(pitch) * cameraDistance + 2.2;
+            const z = Math.cos(orbitYaw) * Math.cos(pitch) * cameraDistance + 4.8;
+            camera.position.set(x, y, z);
+            camera.lookAt(lookTarget);
+        };
 
         const resize = () => {
-            const width = element.clientWidth || 320;
-            const height = element.clientHeight || 220;
+            const width = roomCanvas.clientWidth || 960;
+            const height = roomCanvas.clientHeight || 560;
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
         };
 
-        const fitModel = (model) => {
-            const initialBox = new THREE.Box3().setFromObject(model);
-            const initialSize = initialBox.getSize(new THREE.Vector3());
-            const targetHeight = 2.8;
-            const scale = targetHeight / Math.max(initialSize.y, 0.01);
-            model.scale.setScalar(scale);
-
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const framedSize = box.getSize(new THREE.Vector3());
-            model.position.x -= center.x;
-            model.position.z -= center.z;
-            model.position.y += (pedestal.position.y + 0.16) - box.min.y;
-
-            const fitHeight = framedSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
-            const fitWidth = (framedSize.x / camera.aspect) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
-            const distance = Math.max(fitHeight, fitWidth) * 1.82 + framedSize.z * 0.6;
-            const lookY = pedestal.position.y + framedSize.y * 0.45;
-            camera.position.set(distance * 0.22, lookY + 0.46, distance);
-            camera.lookAt(new THREE.Vector3(0, lookY, 0));
+        const styleModelMaterials = (root, tintHex) => {
+            root.traverse((node) => {
+                if (!node.isMesh) {
+                    return;
+                }
+                node.castShadow = true;
+                node.receiveShadow = true;
+                if (node.material && node.material.color && tintHex) {
+                    node.material.color.lerp(new THREE.Color(tintHex), 0.06);
+                }
+            });
         };
+
+        const placeModelInSlot = (root, slotIndex, tintHex) => {
+            const slotOffset = slotOffsets[slotIndex] || slotOffsets[1];
+            const anchor = new THREE.Group();
+            anchor.position.set(slotOffset.x, slotOffset.y, slotOffset.z);
+
+            const pedestal = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.82, 1.02, 0.2, 40),
+                pedestalMaterial
+            );
+            pedestal.position.set(0, -0.64, 0);
+            anchor.add(pedestal);
+
+            const halo = new THREE.Mesh(
+                new THREE.TorusGeometry(1.14, 0.02, 20, 80),
+                new THREE.MeshBasicMaterial({ color: preset.haloColor, transparent: true, opacity: 0.72 })
+            );
+            halo.rotation.x = Math.PI / 2;
+            halo.position.set(0, -0.52, 0);
+            anchor.add(halo);
+
+            const initialBox = new THREE.Box3().setFromObject(root);
+            const initialSize = initialBox.getSize(new THREE.Vector3());
+            const targetHeight = 2.15;
+            const scale = targetHeight / Math.max(initialSize.y, 0.01);
+            root.scale.setScalar(scale);
+
+            const box = new THREE.Box3().setFromObject(root);
+            const center = box.getCenter(new THREE.Vector3());
+            root.position.x -= center.x;
+            root.position.z -= center.z;
+            root.position.y += (-0.46) - box.min.y;
+
+            styleModelMaterials(root, tintHex);
+            anchor.add(root);
+            roomGroup.add(anchor);
+            animatedAnchors.push({ anchor, halo, slotIndex });
+        };
+
+        roomCanvas.addEventListener("pointerdown", (event) => {
+            isDragging = true;
+            dragStartX = event.clientX;
+            dragStartY = event.clientY;
+            roomCanvas.setPointerCapture(event.pointerId);
+        });
+
+        roomCanvas.addEventListener("pointermove", (event) => {
+            if (!isDragging) {
+                return;
+            }
+            const deltaX = event.clientX - dragStartX;
+            const deltaY = event.clientY - dragStartY;
+            dragStartX = event.clientX;
+            dragStartY = event.clientY;
+            orbitYaw += deltaX * 0.006;
+            orbitPitch -= deltaY * 0.004;
+            updateCamera();
+        });
+
+        const stopDrag = (event) => {
+            if (!isDragging) {
+                return;
+            }
+            isDragging = false;
+            roomCanvas.releasePointerCapture(event.pointerId);
+        };
+
+        roomCanvas.addEventListener("pointerup", stopDrag);
+        roomCanvas.addEventListener("pointerleave", stopDrag);
+        roomCanvas.addEventListener(
+            "wheel",
+            (event) => {
+                event.preventDefault();
+                cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.01, 12.5, 24);
+                updateCamera();
+            },
+            { passive: false }
+        );
 
         resize();
         window.addEventListener("resize", resize);
+        updateCamera();
 
-        loader.load(
-            modelUrl,
-            (gltf) => {
-                anchor = gltf.scene;
-                anchor.traverse((node) => {
-                    if (node.isMesh) {
-                        node.castShadow = true;
-                        node.receiveShadow = true;
-                    }
-                });
-                fitModel(anchor);
-                scene.add(anchor);
-                const fallback = element.querySelector(".room-mini-fallback");
-                if (fallback) {
-                    fallback.style.display = "none";
-                }
-            },
-            undefined,
-            () => {
-                const fallback = element.querySelector(".room-mini-fallback");
-                if (fallback) {
-                    fallback.querySelector("span").textContent = "Preview unavailable";
-                }
+        const loadPromises = occupiedSlots.map((slotChip) => {
+            return new Promise((resolve) => {
+                loader.load(
+                    slotChip.dataset.modelUrl,
+                    (gltf) => {
+                        placeModelInSlot(
+                            gltf.scene,
+                            Number(slotChip.dataset.slotIndex),
+                            slotChip.dataset.characterColor || "#ffffff"
+                        );
+                        resolve();
+                    },
+                    undefined,
+                    () => resolve()
+                );
+            });
+        });
+
+        Promise.all(loadPromises).then(() => {
+            if (roomFallback) {
+                roomFallback.style.display = "none";
             }
-        );
+        });
 
         const clock = new THREE.Clock();
         const animate = () => {
             const elapsed = clock.getElapsedTime();
-            if (anchor) {
-                anchor.rotation.y = Math.sin(elapsed * 0.42) * 0.24;
-                anchor.position.y += Math.sin(elapsed * 1.2) * 0.0018;
-            }
-            halo.rotation.z = elapsed * 0.2;
+            animatedAnchors.forEach(({ anchor, halo, slotIndex }, index) => {
+                anchor.rotation.y = Math.sin(elapsed * 0.28 + index * 0.5) * 0.16;
+                anchor.position.y = (slotOffsets[slotIndex]?.y || 0) + Math.sin(elapsed * 1.15 + index) * 0.03;
+                halo.rotation.z = elapsed * 0.18 + index * 0.24;
+            });
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         };
         animate();
+    } else if (roomFallback && occupiedSlots.length === 0) {
+        roomFallback.querySelector("strong").textContent = "No figurines placed yet";
+        roomFallback.querySelector("span").textContent = "Save a variant into any shelf slot below and the shared room scene will appear here.";
     }
 </script>
 {% endblock %}
