@@ -43,7 +43,8 @@
                 <div
                     id="viewer-lock-overlay"
                     style="display: none; position: absolute; inset: 0; pointer-events: none; border-radius: 20px; background:
-                        radial-gradient(circle at 50% 38%, rgba(122, 240, 255, 0.18), transparent 34%),
+                        radial-gradient(circle at 50% 38%, rgba(122, 240, 255, 0.22), transparent 36%),
+                        repeating-linear-gradient(180deg, rgba(122, 240, 255, 0.06) 0 2px, rgba(122, 240, 255, 0.01) 2px 7px),
                         linear-gradient(180deg, rgba(73, 226, 255, 0.12), rgba(2, 21, 28, 0.18));
                         mix-blend-mode: screen;"
                 ></div>
@@ -295,7 +296,7 @@
                 color: new THREE.Color(0x72f6ff),
                 wireframe: true,
                 transparent: true,
-                opacity: 0.86,
+                opacity: 0.78,
                 side: THREE.DoubleSide,
                 depthWrite: false,
             }));
@@ -305,7 +306,7 @@
             return copyFlags(material, new THREE.MeshBasicMaterial({
                 color: new THREE.Color(0x6be7ff),
                 transparent: true,
-                opacity: 0.22,
+                opacity: 0.3,
                 side: THREE.DoubleSide,
                 depthWrite: false,
             }));
@@ -315,7 +316,7 @@
             if (!stage) {
                 return;
             }
-            stage.style.filter = renderMode === "hologram" ? "blur(2.4px) saturate(0.86) brightness(1.02)" : "none";
+            stage.style.filter = renderMode === "hologram" ? "blur(1.2px) saturate(1.14) brightness(1.06)" : "none";
             if (lockOverlay) {
                 lockOverlay.style.display = renderMode === "hologram" ? "block" : "none";
             }
@@ -598,6 +599,10 @@
                         orbitYaw += 0.005;
                     }
                     modelAnchor.position.y = Math.sin(elapsed * 1.1) * 0.02;
+                }
+                if (lockOverlay && renderMode === "hologram") {
+                    const pulse = 0.16 + ((Math.sin(elapsed * 1.7) + 1) * 0.5) * 0.08;
+                    lockOverlay.style.opacity = String(pulse.toFixed(3));
                 }
                 halo.rotation.z = elapsed * 0.18;
                 updateCamera();
