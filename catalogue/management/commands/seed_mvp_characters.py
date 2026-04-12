@@ -24,7 +24,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 1,
                 "rarity": VariantRarity.STANDARD,
                 "short_description": "Sora stands in the library atrium with an open book glowing softly.",
-                "model_file_path": "models/characters/sora/sakura-student.glb",
+                "model_file_path": "models/characters/sora/base/sora-base-v1.glb",
             },
             {
                 "slug": "sora-school",
@@ -33,7 +33,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 2,
                 "rarity": VariantRarity.STORY,
                 "short_description": "Sora studies beside a classroom window, notebook open to hurried notes.",
-                "model_file_path": "models/characters/sora/sakura-student.glb",
+                "model_file_path": "models/characters/sora/school/sora-school-v1.glb",
             },
             {
                 "slug": "sora-rainy-day",
@@ -42,7 +42,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 3,
                 "rarity": VariantRarity.STORY,
                 "short_description": "Sora rests beside a rain-streaked cafe window, wrapped in quiet warmth.",
-                "model_file_path": "models/characters/sora/sakura-student.glb",
+                "model_file_path": "models/characters/sora/rainy-day/sora-rainy-day-v1.glb",
             },
         ],
     },
