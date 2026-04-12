@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="800" y1="40" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2B3249"/>
+      <stop offset="1" stop-color="#161C2D"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 230) rotate(90) scale(220 520)">
+      <stop stop-color="#F9D7A8" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#F9D7A8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="floor" x1="800" y1="610" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#28324B"/>
+      <stop offset="1" stop-color="#1A2131"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g opacity=".24" stroke="#F6E7CA">
+    <path d="M180 180H1420"/>
+    <path d="M180 300H1420"/>
+    <path d="M180 420H1420"/>
+    <path d="M180 540H1420"/>
+    <path d="M180 660H1420"/>
+    <path d="M280 120V700"/>
+    <path d="M560 120V700"/>
+    <path d="M840 120V700"/>
+    <path d="M1120 120V700"/>
+    <path d="M1320 120V700"/>
+  </g>
+  <rect x="220" y="120" width="1160" height="540" rx="30" fill="#1F2639" stroke="#FFF7E8" stroke-opacity=".12"/>
+  <g opacity=".9">
+    <rect x="305" y="215" width="990" height="280" rx="16" fill="#2A344A"/>
+    <rect x="355" y="250" width="890" height="215" rx="12" fill="#374360"/>
+    <path d="M420 310H680" stroke="#F3D6AE" stroke-width="18" stroke-linecap="round" stroke-opacity=".9"/>
+    <path d="M745 310H1175" stroke="#D8E5FF" stroke-width="10" stroke-linecap="round" stroke-opacity=".5"/>
+    <path d="M480 370H1040" stroke="#D8E5FF" stroke-width="8" stroke-linecap="round" stroke-opacity=".24"/>
+  </g>
+  <rect x="260" y="610" width="1080" height="180" rx="34" fill="url(#floor)" stroke="#FFF7E8" stroke-opacity=".1"/>
+  <ellipse cx="800" cy="705" rx="310" ry="70" fill="#F4DEBA" fill-opacity=".18"/>
+  <ellipse cx="800" cy="705" rx="260" ry="50" fill="#F7EAD3" fill-opacity=".12"/>
+</svg>
