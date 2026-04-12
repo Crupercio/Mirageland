@@ -7,22 +7,31 @@
     <section class="grid">
         <article class="panel hero-panel stack-md">
             <span class="eyebrow">Story Chapter</span>
-            <h1>Sora Quest Hub</h1>
+            <h1>Mirageland Quest Hub</h1>
             <p><strong>{{ chapter_name }}</strong></p>
             <p class="muted">
                 This hub now tracks your real collector account, rewards, and shelf
-                progress through the first playable story chapter.
+                progress across the current playable story chapters.
             </p>
             <div class="action-row">
                 <a class="button-link" href="{% url 'collection:room-detail' %}">Open display room</a>
-                <a class="button-link" href="{% url 'catalogue:character-detail' 'sora-kasumi' %}">View Sora's page</a>
+                <a class="button-link" href="{% url 'catalogue:index' %}">Open character catalogue</a>
             </div>
             <div class="sub-panel stack-sm">
-                <strong>Chapter progress</strong>
-                <p class="muted">{{ completed_count }} / {{ total_count }} quests completed</p>
+                <strong>Current chapter progress</strong>
+                <p class="muted">Chapter {{ active_chapter_number }}: {{ active_chapter_completed_count }} / {{ active_chapter_total_count }} quests completed</p>
                 <div class="meter">
-                    <div class="meter-fill" style="width: {% widthratio completed_count total_count 100 %}%;"></div>
+                    <div class="meter-fill" style="width: {% widthratio active_chapter_completed_count active_chapter_total_count 100 %}%;"></div>
                 </div>
+            </div>
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                {% for chapter in chapter_sections %}
+                    <article class="sub-panel stack-sm" style="{% if chapter.is_active %}border-color: rgba(240, 163, 107, 0.48); background: linear-gradient(180deg, rgba(240, 163, 107, 0.1), rgba(255,255,255,0.02));{% endif %}">
+                        <strong>Chapter {{ chapter.number }}</strong>
+                        <p class="muted">{{ chapter.title }}</p>
+                        <p class="muted">{{ chapter.completed_count }} / {{ chapter.total_count }} complete</p>
+                    </article>
+                {% endfor %}
             </div>
             <div class="metric-grid">
                 <div class="metric-card">
@@ -41,54 +50,70 @@
         </article>
 
         <article class="panel stack-md">
-            <h2>Quest Chain</h2>
+            <h2>Quest Chapters</h2>
             <div class="grid">
-                {% for player_quest in player_quests %}
-                    <section class="sub-panel stack-md">
+                {% for chapter in chapter_sections %}
+                    <section class="sub-panel stack-md" style="{% if chapter.is_active %}border-color: rgba(240, 163, 107, 0.4);{% endif %}">
                         <div class="split">
                             <div>
-                                <span class="pill">{{ player_quest.quest.quest_order }}</span>
-                                <h3>{{ player_quest.quest.title }}</h3>
-                                <p class="muted">{{ player_quest.quest.description }}</p>
+                                <span class="pill">Chapter {{ chapter.number }}</span>
+                                <h3>{{ chapter.title }}</h3>
+                                <p class="muted">{{ chapter.completed_count }} / {{ chapter.total_count }} quests completed</p>
                             </div>
-                            <span class="pill {% if player_quest.status == status_choices.COMPLETED %}gold{% endif %}">
-                                {{ player_quest.get_status_display }}
-                            </span>
+                            {% if chapter.is_active %}
+                                <span class="pill gold">Active</span>
+                            {% endif %}
                         </div>
+                        <div class="grid">
+                            {% for player_quest in chapter.player_quests %}
+                                <section class="sub-panel stack-md">
+                                    <div class="split">
+                                        <div>
+                                            <span class="pill">{{ player_quest.quest.quest_order }}</span>
+                                            <h3>{{ player_quest.quest.title }}</h3>
+                                            <p class="muted">{{ player_quest.quest.description }}</p>
+                                        </div>
+                                        <span class="pill {% if player_quest.status == status_choices.COMPLETED %}gold{% endif %}">
+                                            {{ player_quest.get_status_display }}
+                                        </span>
+                                    </div>
 
-                        <p class="muted">
-                            Reward:
-                            {% if player_quest.quest.reward_variant %}
-                                {{ player_quest.quest.reward_variant.name }}
-                            {% else %}
-                                Story progression only
-                            {% endif %}
-                            {% if player_quest.quest.reward_coins %}
-                                + {{ player_quest.quest.reward_coins }} coins
-                            {% endif %}
-                        </p>
+                                    <p class="muted">
+                                        Reward:
+                                        {% if player_quest.quest.reward_variant %}
+                                            {{ player_quest.quest.reward_variant.name }}
+                                        {% else %}
+                                            Story progression only
+                                        {% endif %}
+                                        {% if player_quest.quest.reward_coins %}
+                                            + {{ player_quest.quest.reward_coins }} coins
+                                        {% endif %}
+                                    </p>
 
-                        {% if player_quest.status == status_choices.AVAILABLE %}
-                            <form method="post" action="{% url 'quests:start' player_quest.quest.slug %}">
-                                {% csrf_token %}
-                                <button type="submit">Start quest</button>
-                            </form>
-                        {% elif player_quest.status == status_choices.ACTIVE %}
-                            <form method="post" action="{% url 'quests:complete' player_quest.quest.slug %}">
-                                {% csrf_token %}
-                                <button type="submit">
-                                    {% if player_quest.quest.slug == "shelf-memory" %}
-                                        Complete after placing Sora on a shelf
+                                    {% if player_quest.status == status_choices.AVAILABLE %}
+                                        <form method="post" action="{% url 'quests:start' player_quest.quest.slug %}">
+                                            {% csrf_token %}
+                                            <button type="submit">Start quest</button>
+                                        </form>
+                                    {% elif player_quest.status == status_choices.ACTIVE %}
+                                        <form method="post" action="{% url 'quests:complete' player_quest.quest.slug %}">
+                                            {% csrf_token %}
+                                            <button type="submit">
+                                                {% if player_quest.quest.slug == "shelf-memory" %}
+                                                    Complete after placing Sora on a shelf
+                                                {% else %}
+                                                    Complete quest
+                                                {% endif %}
+                                            </button>
+                                        </form>
+                                    {% elif player_quest.status == status_choices.COMPLETED %}
+                                        <p class="muted">Completed and rewards granted.</p>
                                     {% else %}
-                                        Complete quest
+                                        <p class="muted">Complete earlier quests to unlock this step.</p>
                                     {% endif %}
-                                </button>
-                            </form>
-                        {% elif player_quest.status == status_choices.COMPLETED %}
-                            <p class="muted">Completed and rewards granted.</p>
-                        {% else %}
-                            <p class="muted">Complete earlier quests to unlock this step.</p>
-                        {% endif %}
+                                </section>
+                            {% endfor %}
+                        </div>
                     </section>
                 {% empty %}
                     <p class="empty-state">No quests have been seeded yet.</p>

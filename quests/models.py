@@ -15,6 +15,8 @@ class Quest(models.Model):
     slug = models.SlugField(max_length=120, unique=True)
     title = models.CharField(max_length=120)
     description = models.TextField()
+    chapter_number = models.PositiveSmallIntegerField(default=1)
+    chapter_title = models.CharField(max_length=120, default="Chapter 1 - First Light")
     quest_order = models.PositiveSmallIntegerField(unique=True)
     reward_variant = models.ForeignKey(
         Variant,

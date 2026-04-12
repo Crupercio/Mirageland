@@ -284,6 +284,24 @@ Make each variant feel intentionally staged, and give locked variants a readable
 
 Push once Sora variants feel visually distinct and locked previews read clearly as teaser states.
 
+## Phase 13: Story Chapter Expansion
+
+### Goal
+
+Grow the quest hub from a single vertical-slice chain into a real chapter-based progression path.
+
+### Tasks
+
+- [x] Add chapter metadata to quests
+- [x] Expand the seed command to include a Ren follow-up chapter
+- [x] Update the quest hub to show chapter progress instead of one flat list
+- [ ] Add Mei's chapter after her model variants are ready
+- [ ] Add richer chapter-specific quest requirements beyond simple completion order
+
+### GitHub Checkpoint
+
+Push once Chapter 2 is seeded, the quest hub groups by chapter, and the suite stays green.
+
 ## Push Rules
 
 - Push after something works, not before

@@ -5,8 +5,15 @@ from .models import PlayerQuest, Quest
 
 @admin.register(Quest)
 class QuestAdmin(admin.ModelAdmin):
-    list_display = ("quest_order", "title", "reward_variant", "reward_coins", "is_active")
-    list_filter = ("is_active",)
+    list_display = (
+        "chapter_number",
+        "quest_order",
+        "title",
+        "reward_variant",
+        "reward_coins",
+        "is_active",
+    )
+    list_filter = ("chapter_number", "is_active")
     search_fields = ("title", "description", "slug")
     ordering = ("quest_order",)
 
