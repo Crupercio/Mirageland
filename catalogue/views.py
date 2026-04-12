@@ -81,3 +81,29 @@ def model_asset(request, model_path):
     response["Content-Disposition"] = f'inline; filename="{asset_path.name}"'
     response["Cache-Control"] = "private, max-age=3600"
     return response
+
+
+@login_required
+def viewer_plate_asset(request, plate_name):
+    plates_dir = (Path(settings.BASE_DIR) / "static" / "images" / "viewer-plates").resolve()
+    asset_path = (plates_dir / plate_name).resolve()
+
+    try:
+        asset_path.relative_to(plates_dir)
+    except ValueError as exc:
+        raise Http404("Plate not found.") from exc
+
+    if not asset_path.exists() or asset_path.suffix.lower() not in {".svg", ".png", ".jpg", ".jpeg", ".webp"}:
+        raise Http404("Plate not found.")
+
+    content_type = {
+        ".svg": "image/svg+xml",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }[asset_path.suffix.lower()]
+    response = FileResponse(asset_path.open("rb"), content_type=content_type)
+    response["Content-Disposition"] = f'inline; filename="{asset_path.name}"'
+    response["Cache-Control"] = "private, max-age=3600"
+    return response

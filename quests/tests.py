@@ -159,3 +159,57 @@ class QuestProgressionTests(TestCase):
 
         chapter_two_state = PlayerQuest.objects.get(user=self.user, quest=chapter_two_quest)
         self.assertEqual(chapter_two_state.status, PlayerQuestStatus.AVAILABLE)
+
+    def test_bootstrap_unlocks_new_chapter_after_previous_chain_was_already_completed(self):
+        chapter_four = Quest.objects.create(
+            slug="quiet-hours",
+            title="Quiet Hours",
+            description="Finish Sora's final chapter beat.",
+            chapter_number=1,
+            chapter_title="Chapter 1 - First Light",
+            quest_order=4,
+            reward_coins=20,
+        )
+        bootstrap_player_quests(self.user)
+        start_quest(self.user, self.quest_one)
+        complete_quest(self.user, self.quest_one)
+        start_quest(self.user, self.quest_two)
+        complete_quest(self.user, self.quest_two)
+        start_quest(self.user, self.quest_three)
+        owned_variant = OwnedVariant.objects.get(user=self.user, variant=self.base_variant)
+        place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant.id)
+        complete_quest(self.user, self.quest_three)
+        start_quest(self.user, chapter_four)
+        complete_quest(self.user, chapter_four)
+
+        ren_character = Character.objects.create(
+            name="Ren Takahashi",
+            archetype="The Rival / Hidden Heart",
+            short_description="A watchful protector at the edge of the frame.",
+            lore_quote="Staying doesn't have to look soft to still count.",
+            color_hex="#445C8C",
+        )
+        ren_variant = Variant.objects.create(
+            character=ren_character,
+            name="Ren Base",
+            scene_type=VariantSceneType.BASE,
+            unlock_order=1,
+            rarity=VariantRarity.STANDARD,
+            short_description="Ren at a city corner.",
+            model_file_path="models/characters/ren/base.glb",
+        )
+        new_chapter_quest = Quest.objects.create(
+            slug="street-corner-promise",
+            title="Street Corner Promise",
+            description="Meet Ren after Sora's story.",
+            chapter_number=2,
+            chapter_title="Chapter 2 - Sharp Edges",
+            quest_order=5,
+            reward_variant=ren_variant,
+            reward_coins=10,
+        )
+
+        bootstrap_player_quests(self.user)
+
+        refreshed_state = PlayerQuest.objects.get(user=self.user, quest=new_chapter_quest)
+        self.assertEqual(refreshed_state.status, PlayerQuestStatus.AVAILABLE)

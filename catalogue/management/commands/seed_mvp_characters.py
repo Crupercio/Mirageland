@@ -64,7 +64,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 1,
                 "rarity": VariantRarity.STANDARD,
                 "short_description": "Ren waits at a city corner, jacket collar up, watching more than he admits.",
-                "model_file_path": "models/characters/ren/nichols-student.glb",
+                "model_file_path": "models/characters/ren/base/ren-base-v1.glb",
             },
             {
                 "slug": "ren-school",
@@ -73,7 +73,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 2,
                 "rarity": VariantRarity.STORY,
                 "short_description": "Ren eats lunch on the rooftop, pretending he wanted the quiet all along.",
-                "model_file_path": "models/characters/ren/nichols-student.glb",
+                "model_file_path": "models/characters/ren/school/ren-school-v1.glb",
             },
             {
                 "slug": "ren-rainy-day",
@@ -82,7 +82,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 3,
                 "rarity": VariantRarity.STORY,
                 "short_description": "Ren waits at a bus stop in the rain, umbrella present but pointedly unused.",
-                "model_file_path": "models/characters/ren/nichols-student.glb",
+                "model_file_path": "models/characters/ren/rainy-day/ren-rainy-day-v1.glb",
             },
         ],
     },
@@ -104,7 +104,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 1,
                 "rarity": VariantRarity.STANDARD,
                 "short_description": "Mei waves from a doorway mid-laugh, energy spilling into the room ahead of her.",
-                "model_file_path": "models/characters/mei/mitsuno-student.glb",
+                "model_file_path": "models/characters/mei/base/mei-base-v1.glb",
             },
             {
                 "slug": "mei-school",
@@ -113,7 +113,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 2,
                 "rarity": VariantRarity.STORY,
                 "short_description": "Mei leans over a chalkboard sketching something delightfully off-topic.",
-                "model_file_path": "models/characters/mei/mitsuno-student.glb",
+                "model_file_path": "models/characters/mei/school/mei-school-v1.glb",
             },
             {
                 "slug": "mei-rainy-day",
@@ -122,7 +122,7 @@ MVP_CHARACTERS = [
                 "unlock_order": 3,
                 "rarity": VariantRarity.STORY,
                 "short_description": "Mei sits quietly beneath yellow light, letting the room hear a softer side of her.",
-                "model_file_path": "models/characters/mei/mitsuno-student.glb",
+                "model_file_path": "models/characters/mei/rainy-day/mei-rainy-day-v1.glb",
             },
         ],
     },

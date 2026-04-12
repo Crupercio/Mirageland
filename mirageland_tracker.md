@@ -274,6 +274,7 @@ Make each variant feel intentionally staged, and give locked variants a readable
 ### Tasks
 
 - [x] Add dedicated Sora variant model files
+- [x] Add dedicated Ren and Mei variant model files
 - [x] Make locked variants default to hologram preview mode
 - [x] Polish locked hologram presentation
 - [x] Add per-variant stage background and lighting presets for Sora
@@ -295,6 +296,7 @@ Grow the quest hub from a single vertical-slice chain into a real chapter-based 
 - [x] Add chapter metadata to quests
 - [x] Expand the seed command to include a Ren follow-up chapter
 - [x] Update the quest hub to show chapter progress instead of one flat list
+- [x] Backfill chapter unlocking for accounts that completed the old Sora-only chain
 - [ ] Add Mei's chapter after her model variants are ready
 - [ ] Add richer chapter-specific quest requirements beyond simple completion order
 

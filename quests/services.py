@@ -34,6 +34,14 @@ def bootstrap_player_quests(user) -> list[PlayerQuest]:
             player_quest.status = PlayerQuestStatus.AVAILABLE
             player_quest.save(update_fields=["status", "updated_at"])
 
+    next_unlockable = next(
+        (player_quest for player_quest in player_quests if player_quest.status != PlayerQuestStatus.COMPLETED),
+        None,
+    )
+    if next_unlockable and next_unlockable.status == PlayerQuestStatus.LOCKED:
+        next_unlockable.status = PlayerQuestStatus.AVAILABLE
+        next_unlockable.save(update_fields=["status", "updated_at"])
+
     return player_quests
 
 
