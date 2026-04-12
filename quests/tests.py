@@ -213,3 +213,126 @@ class QuestProgressionTests(TestCase):
 
         refreshed_state = PlayerQuest.objects.get(user=self.user, quest=new_chapter_quest)
         self.assertEqual(refreshed_state.status, PlayerQuestStatus.AVAILABLE)
+
+    def test_chapter_three_unlocks_after_finishing_chapter_two(self):
+        chapter_four = Quest.objects.create(
+            slug="quiet-hours",
+            title="Quiet Hours",
+            description="Finish Sora's final chapter beat.",
+            chapter_number=1,
+            chapter_title="Chapter 1 - First Light",
+            quest_order=4,
+            reward_coins=20,
+        )
+        ren_character = Character.objects.create(
+            name="Ren Takahashi",
+            archetype="The Rival / Hidden Heart",
+            short_description="A watchful protector at the edge of the frame.",
+            lore_quote="Staying doesn't have to look soft to still count.",
+            color_hex="#445C8C",
+        )
+        ren_base_variant = Variant.objects.create(
+            character=ren_character,
+            name="Ren Base",
+            scene_type=VariantSceneType.BASE,
+            unlock_order=1,
+            rarity=VariantRarity.STANDARD,
+            short_description="Ren at a city corner.",
+            model_file_path="models/characters/ren/base.glb",
+        )
+        ren_school_variant = Variant.objects.create(
+            character=ren_character,
+            name="Ren School",
+            scene_type=VariantSceneType.SCHOOL,
+            unlock_order=2,
+            rarity=VariantRarity.STORY,
+            short_description="Ren on the rooftop.",
+            model_file_path="models/characters/ren/school.glb",
+        )
+        ren_rain_variant = Variant.objects.create(
+            character=ren_character,
+            name="Ren Rainy Day",
+            scene_type=VariantSceneType.RAINY_DAY,
+            unlock_order=3,
+            rarity=VariantRarity.STORY,
+            short_description="Ren at the bus stop in rain.",
+            model_file_path="models/characters/ren/rain.glb",
+        )
+        chapter_two_quest_one = Quest.objects.create(
+            slug="street-corner-promise",
+            title="Street Corner Promise",
+            description="Meet Ren after Sora's story.",
+            chapter_number=2,
+            chapter_title="Chapter 2 - Sharp Edges",
+            quest_order=5,
+            reward_variant=ren_base_variant,
+            reward_coins=10,
+        )
+        chapter_two_quest_two = Quest.objects.create(
+            slug="rooftop-static",
+            title="Rooftop Static",
+            description="Stay with Ren long enough to unlock the school moment.",
+            chapter_number=2,
+            chapter_title="Chapter 2 - Sharp Edges",
+            quest_order=6,
+            reward_variant=ren_school_variant,
+            reward_coins=15,
+        )
+        chapter_two_quest_three = Quest.objects.create(
+            slug="storm-signal",
+            title="Storm Signal",
+            description="Finish Ren's rainy-night chapter beat.",
+            chapter_number=2,
+            chapter_title="Chapter 2 - Sharp Edges",
+            quest_order=7,
+            reward_variant=ren_rain_variant,
+            reward_coins=20,
+        )
+
+        mei_character = Character.objects.create(
+            name="Mei Huang",
+            archetype="The Sunshine / Secretly Struggling",
+            short_description="A bright spark with hidden pressure beneath the smile.",
+            lore_quote="If I make the moment bright enough, maybe nobody loses it.",
+            color_hex="#D89A2B",
+        )
+        mei_base_variant = Variant.objects.create(
+            character=mei_character,
+            name="Mei Base",
+            scene_type=VariantSceneType.BASE,
+            unlock_order=1,
+            rarity=VariantRarity.STANDARD,
+            short_description="Mei in an open doorway.",
+            model_file_path="models/characters/mei/base.glb",
+        )
+        chapter_three_quest = Quest.objects.create(
+            slug="open-door-laughter",
+            title="Open Door Laughter",
+            description="Meet Mei after Ren's chapter resolves.",
+            chapter_number=3,
+            chapter_title="Chapter 3 - Golden Echoes",
+            quest_order=8,
+            reward_variant=mei_base_variant,
+            reward_coins=10,
+        )
+
+        bootstrap_player_quests(self.user)
+        start_quest(self.user, self.quest_one)
+        complete_quest(self.user, self.quest_one)
+        start_quest(self.user, self.quest_two)
+        complete_quest(self.user, self.quest_two)
+        start_quest(self.user, self.quest_three)
+        owned_variant = OwnedVariant.objects.get(user=self.user, variant=self.base_variant)
+        place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant.id)
+        complete_quest(self.user, self.quest_three)
+        start_quest(self.user, chapter_four)
+        complete_quest(self.user, chapter_four)
+        start_quest(self.user, chapter_two_quest_one)
+        complete_quest(self.user, chapter_two_quest_one)
+        start_quest(self.user, chapter_two_quest_two)
+        complete_quest(self.user, chapter_two_quest_two)
+        start_quest(self.user, chapter_two_quest_three)
+        complete_quest(self.user, chapter_two_quest_three)
+
+        chapter_three_state = PlayerQuest.objects.get(user=self.user, quest=chapter_three_quest)
+        self.assertEqual(chapter_three_state.status, PlayerQuestStatus.AVAILABLE)

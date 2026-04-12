@@ -5,7 +5,7 @@ from quests.models import Quest
 
 
 class Command(BaseCommand):
-    help = "Seed the first two story chapters for Sora and Ren."
+    help = "Seed the first three story chapters for Sora, Ren, and Mei."
 
     def handle(self, *args, **options):
         try:
@@ -15,6 +15,9 @@ class Command(BaseCommand):
             ren_base_variant = Variant.objects.get(slug="ren-base")
             ren_school_variant = Variant.objects.get(slug="ren-school")
             ren_rainy_day_variant = Variant.objects.get(slug="ren-rainy-day")
+            mei_base_variant = Variant.objects.get(slug="mei-base")
+            mei_school_variant = Variant.objects.get(slug="mei-school")
+            mei_rainy_day_variant = Variant.objects.get(slug="mei-rainy-day")
         except Variant.DoesNotExist as exc:
             raise CommandError(
                 "Required MVP variants are missing. Run `python manage.py seed_mvp_characters` first."
@@ -105,6 +108,42 @@ class Command(BaseCommand):
                 "reward_variant": ren_rainy_day_variant,
                 "reward_coins": 20,
             },
+            {
+                "slug": "open-door-laughter",
+                "title": "Open Door Laughter",
+                "description": (
+                    "Step into Mei's brighter orbit and claim the first spark of her chapter."
+                ),
+                "chapter_number": 3,
+                "chapter_title": "Chapter 3 - Golden Echoes",
+                "quest_order": 8,
+                "reward_variant": mei_base_variant,
+                "reward_coins": 10,
+            },
+            {
+                "slug": "chalkline-sun",
+                "title": "Chalkline Sun",
+                "description": (
+                    "Stay with Mei through the loud classroom warmth that hides how much she carries."
+                ),
+                "chapter_number": 3,
+                "chapter_title": "Chapter 3 - Golden Echoes",
+                "quest_order": 9,
+                "reward_variant": mei_school_variant,
+                "reward_coins": 15,
+            },
+            {
+                "slug": "lampglow-kept",
+                "title": "Lampglow Kept",
+                "description": (
+                    "Follow Mei into her quieter rainy-night moment and unlock the final chapter reward."
+                ),
+                "chapter_number": 3,
+                "chapter_title": "Chapter 3 - Golden Echoes",
+                "quest_order": 10,
+                "reward_variant": mei_rainy_day_variant,
+                "reward_coins": 20,
+            },
         ]
 
         for quest_data in quests:
@@ -113,4 +152,4 @@ class Command(BaseCommand):
                 defaults=quest_data,
             )
 
-        self.stdout.write(self.style.SUCCESS("Seeded Mirageland Chapter 1 and Chapter 2 quests."))
+        self.stdout.write(self.style.SUCCESS("Seeded Mirageland Chapter 1 through Chapter 3 quests."))
