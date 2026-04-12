@@ -55,37 +55,32 @@
                     <span class="muted">Placed figurines will appear here together once the scene is ready.</span>
                 </div>
             </div>
-            <div class="room-scene-overlay">
-                <div class="room-scene-legend">
-                    {% for slot in room_slots %}
-                        <div
-                            class="room-scene-chip {% if slot.is_unlocked and slot.owned_variant %}is-filled{% elif slot.is_unlocked %}is-ready{% else %}is-locked{% endif %}"
-                            data-slot-index="{{ slot.slot_index }}"
-                            data-unlocked="{{ slot.is_unlocked|yesno:'true,false' }}"
-                            data-shelf-index="{{ slot.shelf_index }}"
-                            data-slot-code="{{ slot.slot_code }}"
-                            {% if slot.is_unlocked and slot.owned_variant %}
-                                data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
-                                data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
-                                data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
-                                data-variant-name="{{ slot.owned_variant.variant.name }}"
-                                data-character-name="{{ slot.owned_variant.variant.character.name }}"
-                            {% endif %}
-                        >
-                            <span class="pill">Shelf {{ slot.shelf_index }} · {{ slot.slot_code|upper }}</span>
-                            {% if slot.is_unlocked and slot.owned_variant %}
-                                <strong>{{ slot.owned_variant.variant.name }}</strong>
-                                <p class="muted">{{ slot.owned_variant.variant.character.name }}</p>
-                            {% elif slot.is_unlocked %}
-                                <strong>Ready for display</strong>
-                                <p class="muted">Unlocked empty slot</p>
-                            {% else %}
-                                <strong>{{ slot.unlock_label }}</strong>
-                                <p class="muted">{{ slot.unlock_cost }} coins</p>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
+            <div id="room-slot-labels" class="room-slot-labels"></div>
+            <div id="room-slot-plaque" class="room-slot-plaque" hidden>
+                <span id="room-slot-plaque-eyebrow" class="pill room-slot-plaque-eyebrow"></span>
+                <strong id="room-slot-plaque-title"></strong>
+                <p id="room-slot-plaque-subtitle" class="muted"></p>
+                <p id="room-slot-plaque-meta" class="muted"></p>
+            </div>
+            <div class="room-scene-data" hidden>
+                {% for slot in room_slots %}
+                    <div
+                        class="room-scene-chip {% if slot.is_unlocked and slot.owned_variant %}is-filled{% elif slot.is_unlocked %}is-ready{% else %}is-locked{% endif %}"
+                        data-slot-index="{{ slot.slot_index }}"
+                        data-unlocked="{{ slot.is_unlocked|yesno:'true,false' }}"
+                        data-shelf-index="{{ slot.shelf_index }}"
+                        data-slot-code="{{ slot.slot_code }}"
+                        data-unlock-label="{{ slot.unlock_label }}"
+                        data-unlock-cost="{{ slot.unlock_cost }}"
+                        {% if slot.is_unlocked and slot.owned_variant %}
+                            data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
+                            data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
+                            data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
+                            data-variant-name="{{ slot.owned_variant.variant.name }}"
+                            data-character-name="{{ slot.owned_variant.variant.character.name }}"
+                        {% endif %}
+                    ></div>
+                {% endfor %}
             </div>
             <div class="room-floor"></div>
         </div>
@@ -451,58 +446,86 @@
         padding: 24px;
     }
 
-    .room-scene-overlay {
+    .room-slot-labels {
         position: absolute;
-        inset: auto 24px 182px;
-        z-index: 1;
-        display: block;
+        inset: 0;
+        z-index: 3;
         pointer-events: none;
     }
 
-    .room-scene-legend {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 10px;
-    }
-
-    .room-scene-chip {
-        min-height: 78px;
-        padding: 12px;
-        border-radius: 16px;
+    .room-slot-label {
+        position: absolute;
+        min-width: 108px;
+        padding: 7px 12px;
+        border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(12, 17, 27, 0.54);
-        backdrop-filter: blur(8px);
-        display: grid;
-        gap: 4px;
+        background: linear-gradient(180deg, rgba(181, 140, 108, 0.94), rgba(103, 73, 53, 0.96));
+        color: #fff5e8;
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-align: center;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+        transform: translate(-50%, -50%);
+        pointer-events: auto;
+        cursor: pointer;
+        transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, opacity 140ms ease;
     }
 
-    .room-scene-chip strong {
-        font-size: 0.98rem;
+    .room-slot-label:hover,
+    .room-slot-label:focus-visible,
+    .room-slot-label.is-selected {
+        transform: translate(-50%, calc(-50% - 2px));
+        border-color: rgba(240, 163, 107, 0.38);
+        background: linear-gradient(180deg, rgba(206, 164, 126, 0.96), rgba(122, 82, 58, 0.98));
+    }
+
+    .room-slot-label.is-ready {
+        background: linear-gradient(180deg, rgba(138, 171, 146, 0.94), rgba(56, 80, 61, 0.96));
+    }
+
+    .room-slot-label.is-filled {
+        border-color: rgba(240, 163, 107, 0.24);
+    }
+
+    .room-slot-label.is-locked {
+        background: linear-gradient(180deg, rgba(74, 76, 88, 0.92), rgba(39, 43, 54, 0.96));
+        color: #d5def1;
+        border-style: dashed;
+        opacity: 0.88;
+    }
+
+    .room-slot-plaque {
+        position: absolute;
+        z-index: 3;
+        min-width: 220px;
+        max-width: 260px;
+        padding: 14px 16px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(173, 133, 102, 0.92), rgba(111, 78, 58, 0.96));
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+
+    .room-slot-plaque strong {
+        display: block;
+        margin: 8px 0 6px;
+        color: #fff6ea;
+        font-size: 1.04rem;
         line-height: 1.2;
     }
 
-    .room-scene-chip p {
+    .room-slot-plaque .muted {
+        color: rgba(255, 244, 234, 0.86);
         margin: 0;
-        font-size: 0.86rem;
     }
 
-    .room-scene-chip.is-filled {
-        background: linear-gradient(180deg, rgba(240, 163, 107, 0.12), rgba(12, 17, 27, 0.58));
-        border-color: rgba(240, 163, 107, 0.26);
-    }
-
-    .room-scene-chip.is-empty {
-        opacity: 0.86;
-    }
-
-    .room-scene-chip.is-ready {
-        background: linear-gradient(180deg, rgba(105, 211, 184, 0.08), rgba(12, 17, 27, 0.58));
-        border-color: rgba(105, 211, 184, 0.22);
-    }
-
-    .room-scene-chip.is-locked {
-        opacity: 0.68;
-        border-style: dashed;
+    .room-slot-plaque-eyebrow {
+        width: fit-content;
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.12);
     }
 
     .room-controls-panel {
@@ -599,12 +622,8 @@
             grid-template-columns: 1fr;
         }
 
-        .room-scene-overlay {
-            inset: auto 18px 170px;
-        }
-
-        .room-scene-legend {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+        .room-slot-plaque {
+            max-width: 220px;
         }
     }
 
@@ -639,12 +658,10 @@
             min-height: 480px;
         }
 
-        .room-scene-overlay {
-            inset: auto 12px 132px;
-        }
-
-        .room-scene-legend {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        .room-slot-label {
+            min-width: 84px;
+            padding: 7px 10px;
+            font-size: 0.72rem;
         }
 
         .room-title-row {
@@ -677,6 +694,12 @@
     const roomShell = document.getElementById("room-scene-shell");
     const roomCanvas = document.getElementById("room-scene-canvas");
     const roomFallback = document.getElementById("room-scene-fallback");
+    const roomSlotLabels = document.getElementById("room-slot-labels");
+    const roomSlotPlaque = document.getElementById("room-slot-plaque");
+    const roomSlotPlaqueEyebrow = document.getElementById("room-slot-plaque-eyebrow");
+    const roomSlotPlaqueTitle = document.getElementById("room-slot-plaque-title");
+    const roomSlotPlaqueSubtitle = document.getElementById("room-slot-plaque-subtitle");
+    const roomSlotPlaqueMeta = document.getElementById("room-slot-plaque-meta");
     const slotChips = [...document.querySelectorAll(".room-scene-chip")];
     const unlockedSlots = slotChips.filter((chip) => chip.dataset.unlocked === "true");
     const occupiedSlots = unlockedSlots.filter((chip) => chip.dataset.modelUrl);
@@ -807,8 +830,8 @@
         });
         const shelfRows = [topShelfY, bottomShelfY];
         for (const y of shelfRows) {
-            const board = new THREE.Mesh(new THREE.BoxGeometry(16.5, 0.18, 1.4), shelfMaterial);
-            board.position.set(0, y, 0.6);
+            const board = new THREE.Mesh(new THREE.BoxGeometry(17.5, 0.18, 2.3), shelfMaterial);
+            board.position.set(0, y, -0.25);
             scene.add(board);
         }
 
@@ -829,6 +852,8 @@
         });
         const animatedAnchors = [];
         const slotAnchors = new Map();
+        const slotLabels = new Map();
+        let selectedSlotIndex = Number(occupiedSlots[0]?.dataset.slotIndex || unlockedSlots[0]?.dataset.slotIndex || slotChips[0]?.dataset.slotIndex || 2);
         let orbitYaw = 0;
         let orbitPitch = -0.14;
         let isDragging = false;
@@ -872,6 +897,65 @@
             });
         };
 
+        const slotDisplayInfo = (slotChip) => {
+            const baseLabel = `Shelf ${slotChip.dataset.shelfIndex} · ${slotChip.dataset.slotCode.toUpperCase()}`;
+            if (slotChip.dataset.modelUrl) {
+                return {
+                    eyebrow: baseLabel,
+                    title: slotChip.dataset.variantName,
+                    subtitle: slotChip.dataset.characterName,
+                    meta: "Displayed now",
+                };
+            }
+
+            if (slotChip.dataset.unlocked === "true") {
+                return {
+                    eyebrow: baseLabel,
+                    title: "Ready for display",
+                    subtitle: "Unlocked empty slot",
+                    meta: "Assign a figurine below",
+                };
+            }
+
+            return {
+                eyebrow: baseLabel,
+                title: slotChip.dataset.unlockLabel,
+                subtitle: `${slotChip.dataset.unlockCost} coins`,
+                meta: "Locked expansion slot",
+            };
+        };
+
+        const updateSelectedPlaque = (slotChip) => {
+            if (!slotChip || !roomSlotPlaque) {
+                return;
+            }
+
+            const info = slotDisplayInfo(slotChip);
+            roomSlotPlaque.hidden = false;
+            roomSlotPlaqueEyebrow.textContent = info.eyebrow;
+            roomSlotPlaqueTitle.textContent = info.title;
+            roomSlotPlaqueSubtitle.textContent = info.subtitle;
+            roomSlotPlaqueMeta.textContent = info.meta;
+
+            slotLabels.forEach((label, slotIndex) => {
+                label.classList.toggle("is-selected", slotIndex === Number(slotChip.dataset.slotIndex));
+            });
+        };
+
+        const projectWorldToScreen = (worldPosition) => {
+            const projected = worldPosition.clone().project(camera);
+            const width = roomCanvas.clientWidth || 960;
+            const height = roomCanvas.clientHeight || 560;
+            const canvasLeft = roomCanvas.offsetLeft;
+            const canvasTop = roomCanvas.offsetTop;
+
+            return {
+                x: ((projected.x + 1) / 2) * width + canvasLeft,
+                y: ((-projected.y + 1) / 2) * height + canvasTop,
+                visible: projected.z > -1 && projected.z < 1,
+            };
+        };
+
         const stripEmbeddedDisplayBase = (root) => {
             const overallBox = new THREE.Box3().setFromObject(root);
             const overallSize = overallBox.getSize(new THREE.Vector3());
@@ -913,14 +997,14 @@
             anchor.position.set(slotOffset.x, slotOffset.y, slotOffset.z);
 
             const pedestal = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.82, 1.02, 0.2, 40),
+                new THREE.CylinderGeometry(0.64, 0.82, 0.18, 40),
                 slotChip.dataset.modelUrl ? pedestalMaterial : emptyPedestalMaterial
             );
-            pedestal.position.set(0, 0.19, 0);
+            pedestal.position.set(0, 0.14, 0.46);
             anchor.add(pedestal);
 
             const halo = new THREE.Mesh(
-                new THREE.TorusGeometry(1.14, 0.02, 20, 80),
+                new THREE.TorusGeometry(0.9, 0.018, 20, 80),
                 new THREE.MeshBasicMaterial({
                     color: preset.haloColor,
                     transparent: true,
@@ -928,7 +1012,7 @@
                 })
             );
             halo.rotation.x = Math.PI / 2;
-            halo.position.set(0, 0.31, 0);
+            halo.position.set(0, 0.24, 0.46);
             anchor.add(halo);
 
             const modelGroup = new THREE.Group();
@@ -936,6 +1020,19 @@
             roomGroup.add(anchor);
             slotAnchors.set(slotIndex, { anchor, pedestal, halo, modelGroup });
             animatedAnchors.push({ anchor, halo, modelGroup, slotIndex, hasModel: Boolean(slotChip.dataset.modelUrl) });
+
+            if (roomSlotLabels) {
+                const label = document.createElement("button");
+                label.type = "button";
+                label.className = `room-slot-label ${slotChip.dataset.unlocked === "true" ? (slotChip.dataset.modelUrl ? "is-filled" : "is-ready") : "is-locked"}`;
+                label.textContent = `Shelf ${slotChip.dataset.shelfIndex} · ${slotChip.dataset.slotCode.toUpperCase()}`;
+                label.addEventListener("click", () => {
+                    selectedSlotIndex = slotIndex;
+                    updateSelectedPlaque(slotChip);
+                });
+                roomSlotLabels.appendChild(label);
+                slotLabels.set(slotIndex, label);
+            }
         };
 
         const placeModelInSlot = (root, slotIndex, tintHex) => {
@@ -1016,6 +1113,7 @@
         updateCamera();
 
         unlockedSlots.forEach((slotChip) => createShelfDisplay(slotChip));
+        updateSelectedPlaque(slotChips.find((chip) => Number(chip.dataset.slotIndex) === selectedSlotIndex) || slotChips[0]);
 
         const loadPromises = occupiedSlots.map((slotChip) => {
             return new Promise((resolve) => {
@@ -1050,6 +1148,28 @@
                 modelGroup.position.y = hasModel ? Math.sin(elapsed * 1.15 + index) * 0.03 : 0;
                 halo.rotation.z = elapsed * 0.18 + index * 0.24;
             });
+
+            slotAnchors.forEach(({ anchor, pedestal }, slotIndex) => {
+                const label = slotLabels.get(slotIndex);
+                if (label) {
+                    const labelWorld = new THREE.Vector3(0, -0.08, 0.98);
+                    anchor.localToWorld(labelWorld);
+                    const screen = projectWorldToScreen(labelWorld);
+                    label.style.display = screen.visible ? "block" : "none";
+                    label.style.left = `${screen.x}px`;
+                    label.style.top = `${screen.y}px`;
+                }
+
+                if (roomSlotPlaque && slotIndex === selectedSlotIndex) {
+                    const plaqueWorld = new THREE.Vector3(0, -0.22, 0.78);
+                    anchor.localToWorld(plaqueWorld);
+                    const plaqueScreen = projectWorldToScreen(plaqueWorld);
+                    roomSlotPlaque.hidden = !plaqueScreen.visible;
+                    roomSlotPlaque.style.left = `${plaqueScreen.x}px`;
+                    roomSlotPlaque.style.top = `${plaqueScreen.y}px`;
+                }
+            });
+
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         };
