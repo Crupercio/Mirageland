@@ -9,24 +9,10 @@
             <span class="eyebrow">{{ current_theme_label }}</span>
             <h1>{{ collector.username }}'s Display Room</h1>
             <p class="muted">
-                This is the first persistent shelf loop. Arrange owned figurines,
-                choose a room theme, and keep the layout saved to your collector profile.
+                Your room now behaves like a real shelf showcase. Saved slots appear on the wall,
+                themes change the mood of the space, and each occupied shelf renders its figurine
+                as a compact display preview.
             </p>
-
-            <form method="post" action="{% url 'collection:room-update-theme' %}" class="grid">
-                {% csrf_token %}
-                <label class="field" for="theme_slug">
-                    <span>Room theme</span>
-                    <select id="theme_slug" name="theme_slug">
-                        {% for theme_slug, theme_label in room_themes.items %}
-                            <option value="{{ theme_slug }}" {% if room.theme_slug == theme_slug %}selected{% endif %}>
-                                {{ theme_label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </label>
-                <button type="submit">Save theme</button>
-            </form>
 
             <div class="metric-grid">
                 <div class="metric-card">
@@ -43,46 +29,86 @@
                 </div>
             </div>
 
-            <form method="post" action="{% url 'collection:room-toggle-visibility' %}">
-                {% csrf_token %}
-                <input type="hidden" name="is_public" value="{% if room.is_public %}false{% else %}true{% endif %}">
-                <button type="submit">
-                    {% if room.is_public %}
-                        Make room private
-                    {% else %}
-                        Make room public
-                    {% endif %}
-                </button>
-            </form>
-
-            <form method="post" action="{% url 'collection:room-toggle-reaction' %}">
-                {% csrf_token %}
-                <button type="submit" {% if not room.is_public %}disabled{% endif %}>
-                    {% if has_reacted %}
-                        Remove reaction
-                    {% else %}
-                        React to room
-                    {% endif %}
-                </button>
-            </form>
-            <p class="muted">
-                {% if not room.is_public %}
-                    Make the room public to allow reactions.
-                {% endif %}
-            </p>
+            <div class="room-scene room-theme-{{ room.theme_slug|slugify }}" data-room-theme="{{ room.theme_slug }}">
+                <div class="room-scene-backdrop"></div>
+                <div class="room-scene-glow"></div>
+                <div class="room-scene-wall"></div>
+                <div class="room-shelves">
+                    {% for slot in room.slots.all %}
+                        <section class="room-slot-card {% if slot.owned_variant %}is-filled{% else %}is-empty{% endif %}">
+                            <div class="room-slot-header">
+                                <span class="pill">Slot {{ slot.slot_index }}</span>
+                                {% if slot.owned_variant %}
+                                    <span class="pill success">{{ slot.owned_variant.variant.character.name }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="room-slot-stage">
+                                {% if slot.owned_variant %}
+                                    <div
+                                        class="room-mini-viewer"
+                                        data-model-url="{% url 'catalogue:model-asset' slot.owned_variant.variant.model_file_path %}"
+                                        data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
+                                        data-scene-type="{{ slot.owned_variant.variant.scene_type }}"
+                                        data-theme="{{ room.theme_slug }}"
+                                    >
+                                        <div class="room-mini-fallback">
+                                            <strong>{{ slot.owned_variant.variant.name }}</strong>
+                                            <span class="muted">Preview loading...</span>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="room-slot-empty-state">
+                                        <span class="room-slot-orb"></span>
+                                        <strong>Open shelf space</strong>
+                                        <p class="muted">Place a figurine here to bring the room to life.</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="room-slot-meta">
+                                {% if slot.owned_variant %}
+                                    <strong>{{ slot.owned_variant.variant.name }}</strong>
+                                    <p class="muted">{{ slot.owned_variant.variant.short_description }}</p>
+                                {% else %}
+                                    <strong>Empty slot</strong>
+                                    <p class="muted">Ready for any owned variant.</p>
+                                {% endif %}
+                            </div>
+                        </section>
+                    {% endfor %}
+                </div>
+                <div class="room-floor"></div>
+            </div>
         </article>
 
         <article class="panel stack-md">
-            <h2>Shelf Layout</h2>
-            <div class="shelf-grid">
+            <div class="split">
+                <div>
+                    <h2>Shelf Controls</h2>
+                    <p class="muted">
+                        Each saved slot below updates the room wall above. Move variants around freely and the room preview
+                        will reflect the latest layout.
+                    </p>
+                </div>
+                <a class="button-link" href="{% url 'quests:hub' %}">Return to quest hub</a>
+            </div>
+
+            <div class="room-control-grid">
                 {% for slot in room.slots.all %}
                     <section class="sub-panel stack-md">
-                        <strong>Slot {{ slot.slot_index }}</strong>
+                        <div class="split">
+                            <strong>Slot {{ slot.slot_index }}</strong>
+                            {% if slot.owned_variant %}
+                                <span class="pill success">Occupied</span>
+                            {% else %}
+                                <span class="pill">Empty</span>
+                            {% endif %}
+                        </div>
+
                         {% if slot.owned_variant %}
                             <p>{{ slot.owned_variant.variant.name }}</p>
                             <p class="muted">{{ slot.owned_variant.variant.short_description }}</p>
                         {% else %}
-                            <p class="muted">Empty slot</p>
+                            <p class="muted">Choose an owned variant to populate this shelf.</p>
                         {% endif %}
 
                         <form method="post" action="{% url 'collection:room-place-variant' slot.slot_index %}" class="grid">
@@ -111,11 +137,61 @@
 
     <aside class="grid">
         <section class="panel stack-md">
+            <h2>Room Controls</h2>
+            <form method="post" action="{% url 'collection:room-update-theme' %}" class="grid">
+                {% csrf_token %}
+                <label class="field" for="theme_slug">
+                    <span>Room theme</span>
+                    <select id="theme_slug" name="theme_slug">
+                        {% for theme_slug, theme_label in room_themes.items %}
+                            <option value="{{ theme_slug }}" {% if room.theme_slug == theme_slug %}selected{% endif %}>
+                                {{ theme_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit">Save theme</button>
+            </form>
+
+            <form method="post" action="{% url 'collection:room-toggle-visibility' %}">
+                {% csrf_token %}
+                <input type="hidden" name="is_public" value="{% if room.is_public %}false{% else %}true{% endif %}">
+                <button type="submit">
+                    {% if room.is_public %}
+                        Make room private
+                    {% else %}
+                        Make room public
+                    {% endif %}
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'collection:room-toggle-reaction' %}">
+                {% csrf_token %}
+                <button type="submit" {% if not room.is_public %}disabled{% endif %}>
+                    {% if has_reacted %}
+                        Remove reaction
+                    {% else %}
+                        React to room
+                    {% endif %}
+                </button>
+            </form>
+
+            <p class="muted">
+                {% if not room.is_public %}
+                    Make the room public to allow reactions.
+                {% else %}
+                    Public rooms can receive reactions from visiting collectors.
+                {% endif %}
+            </p>
+        </section>
+
+        <section class="panel stack-md">
             <h2>Owned Variants</h2>
             <div class="grid">
                 {% for owned_variant in owned_variants %}
                     <article class="sub-panel">
                         <strong>{{ owned_variant.variant.name }}</strong>
+                        <p class="muted">{{ owned_variant.variant.character.name }} | {{ owned_variant.variant.get_scene_type_display }}</p>
                         <p class="muted">{{ owned_variant.variant.short_description }}</p>
                     </article>
                 {% empty %}
@@ -127,11 +203,405 @@
         <section class="panel stack-md">
             <h2>Next Step</h2>
             <p class="muted">
-                Once at least one figurine is placed here, the "Shelf Memory" quest
-                can be completed in the quest hub.
+                The room is now visually staged. The next big upgrade after this pass is a single
+                unified 3D room renderer where all occupied figurines live in one scene together.
             </p>
-            <p><a class="button-link" href="{% url 'quests:hub' %}">Return to quest hub</a></p>
+            <p class="muted">
+                Your current saved slots already provide the data we need for that next phase.
+            </p>
         </section>
     </aside>
 </main>
+
+<style>
+    .room-scene {
+        position: relative;
+        overflow: hidden;
+        min-height: 980px;
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(19, 24, 36, 0.98), rgba(15, 18, 28, 0.98));
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+        padding: 28px 24px 44px;
+    }
+
+    .room-scene-backdrop,
+    .room-scene-glow,
+    .room-scene-wall,
+    .room-floor {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .room-scene-backdrop {
+        background:
+            radial-gradient(circle at 20% 16%, rgba(240, 163, 107, 0.16), transparent 24%),
+            radial-gradient(circle at 82% 22%, rgba(134, 185, 205, 0.14), transparent 20%),
+            linear-gradient(180deg, rgba(40, 53, 74, 0.95), rgba(19, 24, 36, 1));
+    }
+
+    .room-scene-glow {
+        background:
+            radial-gradient(circle at 50% 14%, rgba(255, 222, 176, 0.16), transparent 26%),
+            radial-gradient(circle at 50% 74%, rgba(255, 194, 104, 0.1), transparent 24%);
+        mix-blend-mode: screen;
+        opacity: 0.92;
+    }
+
+    .room-scene-wall {
+        inset: 24px 24px 170px;
+        border-radius: 28px;
+        background:
+            linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+            linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+        background-size: 54px 54px, 54px 54px, auto;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: inset 0 -180px 180px rgba(0, 0, 0, 0.16);
+    }
+
+    .room-floor {
+        inset: auto 20px 20px;
+        height: 150px;
+        border-radius: 28px;
+        background:
+            radial-gradient(circle at 50% 0%, rgba(255, 236, 201, 0.18), transparent 58%),
+            linear-gradient(180deg, rgba(233, 202, 152, 0.16), rgba(34, 25, 18, 0.08)),
+            repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 26px, rgba(255,255,255,0.01) 26px 52px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .room-shelves {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 26px;
+        padding: 60px 14px 90px;
+    }
+
+    .room-slot-card {
+        position: relative;
+        min-height: 360px;
+        padding: 16px;
+        border-radius: 26px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(9, 13, 22, 0.34), rgba(255, 255, 255, 0.02));
+        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
+    }
+
+    .room-slot-card::after {
+        content: "";
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        bottom: -16px;
+        height: 22px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(0, 0, 0, 0.35), transparent 70%);
+        pointer-events: none;
+    }
+
+    .room-slot-card.is-filled {
+        background:
+            radial-gradient(circle at top, rgba(240, 163, 107, 0.08), transparent 24%),
+            linear-gradient(180deg, rgba(18, 22, 33, 0.72), rgba(255, 255, 255, 0.02));
+    }
+
+    .room-slot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .room-slot-stage {
+        position: relative;
+        min-height: 220px;
+        border-radius: 22px;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at 50% 18%, rgba(255, 223, 175, 0.14), transparent 28%),
+            linear-gradient(180deg, rgba(19, 24, 36, 0.95), rgba(20, 28, 42, 0.98));
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .room-slot-stage::after {
+        content: "";
+        position: absolute;
+        inset: auto 10% 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 204, 112, 0.22), transparent 70%);
+        pointer-events: none;
+    }
+
+    .room-mini-viewer,
+    .room-slot-empty-state {
+        position: absolute;
+        inset: 0;
+    }
+
+    .room-mini-viewer {
+        display: block;
+    }
+
+    .room-mini-viewer canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .room-mini-fallback {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        display: grid;
+        gap: 4px;
+        z-index: 1;
+    }
+
+    .room-slot-empty-state {
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 22px;
+        gap: 12px;
+    }
+
+    .room-slot-orb {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), transparent 34%),
+            radial-gradient(circle, rgba(120, 227, 255, 0.28), rgba(120, 227, 255, 0.04));
+        box-shadow: 0 0 30px rgba(120, 227, 255, 0.18);
+    }
+
+    .room-slot-meta {
+        margin-top: 16px;
+    }
+
+    .room-control-grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .room-theme-warm-library .room-scene-backdrop {
+        background:
+            radial-gradient(circle at 18% 16%, rgba(240, 163, 107, 0.16), transparent 24%),
+            radial-gradient(circle at 82% 22%, rgba(245, 215, 164, 0.1), transparent 20%),
+            linear-gradient(180deg, rgba(47, 57, 76, 0.96), rgba(20, 24, 35, 1));
+    }
+
+    .room-theme-city-loft .room-scene-backdrop {
+        background:
+            radial-gradient(circle at 80% 18%, rgba(255, 147, 101, 0.16), transparent 22%),
+            radial-gradient(circle at 24% 30%, rgba(119, 168, 255, 0.14), transparent 20%),
+            linear-gradient(180deg, rgba(38, 35, 49, 0.96), rgba(17, 20, 31, 1));
+    }
+
+    .room-theme-night-studio .room-scene-backdrop {
+        background:
+            radial-gradient(circle at 50% 14%, rgba(116, 226, 255, 0.14), transparent 24%),
+            radial-gradient(circle at 76% 24%, rgba(176, 133, 255, 0.1), transparent 18%),
+            linear-gradient(180deg, rgba(25, 31, 46, 0.96), rgba(11, 15, 24, 1));
+    }
+
+    @media (max-width: 1080px) {
+        .room-shelves {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 720px) {
+        .room-scene {
+            min-height: auto;
+            padding: 18px 14px 28px;
+        }
+
+        .room-scene-wall {
+            inset: 16px 14px 120px;
+        }
+
+        .room-floor {
+            inset: auto 12px 12px;
+            height: 110px;
+        }
+
+        .room-shelves {
+            grid-template-columns: 1fr;
+            padding: 36px 4px 74px;
+        }
+    }
+</style>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+        }
+    }
+</script>
+<script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+    const miniViewers = document.querySelectorAll(".room-mini-viewer");
+
+    const scenePresets = {
+        base: {
+            keyColor: 0xffefdb,
+            keyIntensity: 1.4,
+            fillColor: 0xcfe0ff,
+            fillIntensity: 0.72,
+            rimColor: 0xf0b067,
+            rimIntensity: 0.55,
+            background: "radial-gradient(circle at 50% 18%, rgba(247, 214, 164, 0.16), transparent 28%), linear-gradient(180deg, rgba(21, 28, 42, 0.98), rgba(17, 22, 34, 0.98))",
+        },
+        school: {
+            keyColor: 0xf4f8ff,
+            keyIntensity: 1.34,
+            fillColor: 0xc8dcff,
+            fillIntensity: 0.88,
+            rimColor: 0x8fb7ff,
+            rimIntensity: 0.58,
+            background: "radial-gradient(circle at 50% 18%, rgba(188, 219, 255, 0.16), transparent 28%), linear-gradient(180deg, rgba(20, 30, 46, 0.98), rgba(16, 22, 34, 0.98))",
+        },
+        rainy_day: {
+            keyColor: 0xe5f7ff,
+            keyIntensity: 1.26,
+            fillColor: 0x9ecfd9,
+            fillIntensity: 0.84,
+            rimColor: 0x79d3df,
+            rimIntensity: 0.7,
+            background: "radial-gradient(circle at 50% 16%, rgba(123, 211, 223, 0.14), transparent 28%), linear-gradient(180deg, rgba(16, 25, 39, 0.98), rgba(12, 19, 31, 0.98))",
+        },
+    };
+
+    for (const element of miniViewers) {
+        const modelUrl = element.dataset.modelUrl;
+        const sceneType = element.dataset.sceneType || "base";
+        const preset = scenePresets[sceneType] || scenePresets.base;
+        element.style.background = preset.background;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.setSize(element.clientWidth || 320, element.clientHeight || 220);
+        element.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(24, (element.clientWidth || 320) / (element.clientHeight || 220), 0.1, 100);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 1.08);
+        const keyLight = new THREE.DirectionalLight(preset.keyColor, preset.keyIntensity);
+        keyLight.position.set(4.5, 6, 6.5);
+        const fillLight = new THREE.DirectionalLight(preset.fillColor, preset.fillIntensity);
+        fillLight.position.set(-4.5, 3.2, 4.5);
+        const rimLight = new THREE.DirectionalLight(preset.rimColor, preset.rimIntensity);
+        rimLight.position.set(0, 3.2, -5);
+        scene.add(ambient, keyLight, fillLight, rimLight);
+
+        const pedestal = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.9, 1.1, 0.22, 40),
+            new THREE.MeshPhysicalMaterial({
+                color: "#ead7b8",
+                metalness: 0.05,
+                roughness: 0.78,
+            })
+        );
+        pedestal.position.y = -1.12;
+        scene.add(pedestal);
+
+        const halo = new THREE.Mesh(
+            new THREE.TorusGeometry(1.25, 0.024, 24, 100),
+            new THREE.MeshBasicMaterial({ color: 0xd4a843, transparent: true, opacity: 0.72 })
+        );
+        halo.rotation.x = Math.PI / 2;
+        halo.position.y = -0.98;
+        scene.add(halo);
+
+        const loader = new GLTFLoader();
+        let anchor = null;
+
+        const resize = () => {
+            const width = element.clientWidth || 320;
+            const height = element.clientHeight || 220;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        };
+
+        const fitModel = (model) => {
+            const initialBox = new THREE.Box3().setFromObject(model);
+            const initialSize = initialBox.getSize(new THREE.Vector3());
+            const targetHeight = 2.8;
+            const scale = targetHeight / Math.max(initialSize.y, 0.01);
+            model.scale.setScalar(scale);
+
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const framedSize = box.getSize(new THREE.Vector3());
+            model.position.x -= center.x;
+            model.position.z -= center.z;
+            model.position.y += (pedestal.position.y + 0.16) - box.min.y;
+
+            const fitHeight = framedSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+            const fitWidth = (framedSize.x / camera.aspect) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+            const distance = Math.max(fitHeight, fitWidth) * 1.82 + framedSize.z * 0.6;
+            const lookY = pedestal.position.y + framedSize.y * 0.45;
+            camera.position.set(distance * 0.22, lookY + 0.46, distance);
+            camera.lookAt(new THREE.Vector3(0, lookY, 0));
+        };
+
+        resize();
+        window.addEventListener("resize", resize);
+
+        loader.load(
+            modelUrl,
+            (gltf) => {
+                anchor = gltf.scene;
+                anchor.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+                fitModel(anchor);
+                scene.add(anchor);
+                const fallback = element.querySelector(".room-mini-fallback");
+                if (fallback) {
+                    fallback.style.display = "none";
+                }
+            },
+            undefined,
+            () => {
+                const fallback = element.querySelector(".room-mini-fallback");
+                if (fallback) {
+                    fallback.querySelector("span").textContent = "Preview unavailable";
+                }
+            }
+        );
+
+        const clock = new THREE.Clock();
+        const animate = () => {
+            const elapsed = clock.getElapsedTime();
+            if (anchor) {
+                anchor.rotation.y = Math.sin(elapsed * 0.42) * 0.24;
+                anchor.position.y += Math.sin(elapsed * 1.2) * 0.0018;
+            }
+            halo.rotation.z = elapsed * 0.2;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        };
+        animate();
+    }
+</script>
 {% endblock %}

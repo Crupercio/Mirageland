@@ -304,6 +304,24 @@ Grow the quest hub from a single vertical-slice chain into a real chapter-based 
 
 Push once Chapter 2 is seeded, the quest hub groups by chapter, and the suite stays green.
 
+## Phase 14: Display Room Visualization
+
+### Goal
+
+Turn the room from a saved slot form into a visual showcase where occupied shelves actually display the figurines you placed.
+
+### Tasks
+
+- [x] Redesign the room into a staged shelf wall layout
+- [x] Render occupied shelf slots as mini figurine previews
+- [x] Keep slot controls editable under the visual room
+- [ ] Upgrade from per-slot previews to one unified multi-figurine 3D room scene
+- [ ] Add drag-and-drop or click-to-reposition room interactions
+
+### GitHub Checkpoint
+
+Push once saved placements are visible on the room wall and the room route remains stable.
+
 ## Push Rules
 
 - Push after something works, not before
