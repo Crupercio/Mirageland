@@ -128,7 +128,7 @@
             <section class="panel stack-md">
                 <h2>Viewer Notes</h2>
                 <div class="sub-panel">
-                    <p class="muted">Wireframe now keeps much more of the original texture color, then adds a lighter inspection shell and triangle cage on top instead of washing the model flat gray.</p>
+                    <p class="muted">Wireframe now preserves the original texture color and simply layers the triangle cage on top, without washing the model toward gray.</p>
                 </div>
                 <div class="sub-panel">
                     <p class="muted">Next strong upgrade: pose switching, lighting presets, and a room-themed viewer backdrop.</p>
@@ -227,47 +227,6 @@
             });
         };
 
-        const buildWireBaseMaterial = (material) => {
-            const sourceColor = material.color ? material.color.clone() : new THREE.Color(0xffffff);
-            const luminance = sourceColor.getHSL({ h: 0, s: 0, l: 0 }).l;
-            const softenedColor = sourceColor.clone().lerp(new THREE.Color(0xffffff), 0.54);
-            const baseOpacity = material.map
-                ? 0.86
-                : luminance < 0.22
-                    ? 0.78
-                    : luminance < 0.5
-                        ? 0.5
-                        : 0.24;
-
-            return new THREE.MeshBasicMaterial({
-                color: material.map ? sourceColor : softenedColor,
-                map: material.map || null,
-                transparent: true,
-                opacity: baseOpacity,
-                side: material.side ?? THREE.FrontSide,
-                alphaTest: material.alphaTest || 0,
-                depthWrite: false,
-            });
-        };
-
-        const buildWireGhostMaterial = (material) => {
-            const sourceColor = material.color ? material.color.clone() : new THREE.Color(0xffffff);
-            const luminance = sourceColor.getHSL({ h: 0, s: 0, l: 0 }).l;
-
-            return new THREE.MeshBasicMaterial({
-                color: new THREE.Color(0xf7f4ef),
-                transparent: true,
-                opacity: material.map
-                    ? 0.14
-                    : luminance < 0.22
-                        ? 0.08
-                        : 0.3,
-                side: material.side ?? THREE.FrontSide,
-                alphaTest: material.alphaTest || 0,
-                depthWrite: false,
-            });
-        };
-
         const buildWireframeMaterial = (material) => {
             const sourceColor = material.color ? material.color.clone() : new THREE.Color(0xffffff);
             const { h, s, l } = sourceColor.getHSL({ h: 0, s: 0, l: 0 });
@@ -293,15 +252,12 @@
                 if (mode === "normal") {
                     entry.mesh.material = entry.originalMaterial;
                     entry.overlay.visible = false;
-                    entry.ghost.visible = false;
                 } else if (mode === "unlit") {
                     entry.mesh.material = entry.unlitMaterial;
                     entry.overlay.visible = false;
-                    entry.ghost.visible = false;
                 } else {
-                    entry.mesh.material = entry.wireBaseMaterial;
+                    entry.mesh.material = entry.originalMaterial;
                     entry.overlay.visible = true;
-                    entry.ghost.visible = true;
                 }
             });
         };
@@ -509,30 +465,14 @@
                                     ? originalMaterial.map((material) => buildUnlitMaterial(material))
                                     : buildUnlitMaterial(originalMaterial);
 
-                                const wireBaseMaterial = Array.isArray(originalMaterial)
-                                    ? originalMaterial.map((material) => buildWireBaseMaterial(material))
-                                    : buildWireBaseMaterial(originalMaterial);
-
-                                const wireGhostMaterial = Array.isArray(originalMaterial)
-                                    ? originalMaterial.map((material) => buildWireGhostMaterial(material))
-                                    : buildWireGhostMaterial(originalMaterial);
-
                                 const wireframeMaterial = Array.isArray(originalMaterial)
                                     ? originalMaterial.map((material) => buildWireframeMaterial(material))
                                     : buildWireframeMaterial(originalMaterial);
 
-                                const ghost = new THREE.Mesh(node.geometry, wireGhostMaterial);
-                                ghost.userData.viewerOverlay = true;
-                                ghost.visible = false;
-                                ghost.renderOrder = 1;
-                                ghost.scale.setScalar(1.0004);
-                                ghost.frustumCulled = false;
-                                node.add(ghost);
-
                                 const overlay = new THREE.Mesh(node.geometry, wireframeMaterial);
                                 overlay.userData.viewerOverlay = true;
                                 overlay.visible = false;
-                                overlay.renderOrder = 2.5;
+                                overlay.renderOrder = 2;
                                 overlay.scale.setScalar(1.0012);
                                 overlay.frustumCulled = false;
                                 node.add(overlay);
@@ -541,8 +481,6 @@
                                     mesh: node,
                                     originalMaterial,
                                     unlitMaterial,
-                                    wireBaseMaterial,
-                                    ghost,
                                     overlay,
                                 });
                             }
