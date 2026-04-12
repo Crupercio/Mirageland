@@ -128,7 +128,7 @@
             <section class="panel stack-md">
                 <h2>Viewer Notes</h2>
                 <div class="sub-panel">
-                    <p class="muted">Wireframe now uses a shaded inspection look: low-opacity original color underneath, a pale ghost shell over the form, and a stronger triangle cage on top.</p>
+                    <p class="muted">Wireframe now keeps much more of the original texture color, then adds a lighter inspection shell and triangle cage on top instead of washing the model flat gray.</p>
                 </div>
                 <div class="sub-panel">
                     <p class="muted">Next strong upgrade: pose switching, lighting presets, and a room-themed viewer backdrop.</p>
@@ -232,7 +232,7 @@
             const luminance = sourceColor.getHSL({ h: 0, s: 0, l: 0 }).l;
             const softenedColor = sourceColor.clone().lerp(new THREE.Color(0xffffff), 0.54);
             const baseOpacity = material.map
-                ? 0.48
+                ? 0.86
                 : luminance < 0.22
                     ? 0.78
                     : luminance < 0.5
@@ -258,7 +258,7 @@
                 color: new THREE.Color(0xf7f4ef),
                 transparent: true,
                 opacity: material.map
-                    ? 0.5
+                    ? 0.14
                     : luminance < 0.22
                         ? 0.08
                         : 0.3,
