@@ -72,6 +72,7 @@
                             data-character-color="{{ slot.owned_variant.variant.character.color_hex }}"
                             data-variant-name="{{ slot.owned_variant.variant.name }}"
                             data-character-name="{{ slot.owned_variant.variant.character.name }}"
+                            data-render-mode="{% if slot.owned_variant.customization_state %}{{ slot.owned_variant.customization_state.render_mode }}{% else %}normal{% endif %}"
                         {% endif %}
                     ></div>
                 {% endfor %}
@@ -989,15 +990,50 @@
             });
         };
 
-        const styleModelMaterials = (root, tintHex) => {
+        const buildUnlitMaterial = (material) => {
+            return new THREE.MeshBasicMaterial({
+                color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+                map: material.map || null,
+                transparent: material.transparent || false,
+                opacity: material.opacity ?? 1,
+                side: material.side,
+                alphaTest: material.alphaTest || 0,
+            });
+        };
+
+        const buildWireframeMaterial = (material) => {
+            return new THREE.MeshBasicMaterial({
+                color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+                map: material.map || null,
+                transparent: true,
+                opacity: 1,
+                side: THREE.DoubleSide,
+                alphaTest: material.alphaTest || 0,
+                wireframe: true,
+            });
+        };
+
+        const styleModelMaterials = (root, renderMode) => {
             root.traverse((node) => {
                 if (!node.isMesh) {
                     return;
                 }
                 node.castShadow = true;
                 node.receiveShadow = true;
-                if (node.material && node.material.color && tintHex) {
-                    node.material.color.lerp(new THREE.Color(tintHex), 0.06);
+                if (!node.userData.roomOriginalMaterial) {
+                    node.userData.roomOriginalMaterial = node.material;
+                }
+
+                if (renderMode === "unlit") {
+                    node.material = Array.isArray(node.userData.roomOriginalMaterial)
+                        ? node.userData.roomOriginalMaterial.map((material) => buildUnlitMaterial(material))
+                        : buildUnlitMaterial(node.userData.roomOriginalMaterial);
+                } else if (renderMode === "wireframe") {
+                    node.material = Array.isArray(node.userData.roomOriginalMaterial)
+                        ? node.userData.roomOriginalMaterial.map((material) => buildWireframeMaterial(material))
+                        : buildWireframeMaterial(node.userData.roomOriginalMaterial);
+                } else {
+                    node.material = node.userData.roomOriginalMaterial;
                 }
             });
         };
@@ -1069,7 +1105,7 @@
             slotAnchors.set(slotIndex, { anchor, pedestal, focusDisc, modelGroup });
         };
 
-        const placeModelInSlot = (root, slotIndex, tintHex) => {
+        const placeModelInSlot = (root, slotIndex, renderMode) => {
             const anchorParts = slotAnchors.get(slotIndex);
             if (!anchorParts) {
                 return;
@@ -1090,7 +1126,7 @@
             root.position.z += pedestal.position.z - center.z;
             root.position.y += pedestalTop - box.min.y + 0.01;
 
-            styleModelMaterials(root, tintHex);
+            styleModelMaterials(root, renderMode);
             root.traverse((node) => {
                 if (node.isMesh) {
                     node.userData.roomSlotIndex = slotIndex;
@@ -1192,7 +1228,7 @@
                         placeModelInSlot(
                             gltf.scene,
                             Number(slotChip.dataset.slotIndex),
-                            slotChip.dataset.characterColor || "#ffffff"
+                            slotChip.dataset.renderMode || "normal"
                         );
                         resolve();
                     },

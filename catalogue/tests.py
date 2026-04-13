@@ -2,7 +2,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 
 from accounts.models import User
-from collection.models import OwnedVariant
+from collection.models import OwnedVariant, OwnedVariantCustomization, OwnedVariantRenderMode
 
 from .models import Character, Variant, VariantRarity, VariantSceneType
 
@@ -121,11 +121,64 @@ class CharacterDetailViewTests(TestCase):
         self.assertContains(response, 'data-variant-owned="false"')
         self.assertContains(response, "Locked preview")
 
+    def test_character_detail_includes_saved_render_mode_for_owned_variant(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        OwnedVariantCustomization.objects.create(
+            owned_variant=owned_variant,
+            render_mode=OwnedVariantRenderMode.UNLIT,
+        )
+
+        self.client.force_login(self.collector)
+        response = self.client.get(f"/catalogue/characters/{self.character.slug}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-initial-render-mode="unlit"')
+
     def test_character_detail_redirects_anonymous_collectors_to_login(self):
         response = self.client.get(f"/catalogue/characters/{self.character.slug}/")
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login/", response["Location"])
+
+    def test_render_mode_save_endpoint_updates_owned_variant_state(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        self.client.force_login(self.collector)
+
+        response = self.client.post(
+            "/catalogue/owned-variants/render-mode/",
+            {
+                "owned_variant_id": owned_variant.id,
+                "render_mode": "wireframe",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        owned_variant.refresh_from_db()
+        self.assertEqual(owned_variant.customization_state.render_mode, "wireframe")
+
+    def test_render_mode_reset_endpoint_restores_default_state(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        OwnedVariantCustomization.objects.create(
+            owned_variant=owned_variant,
+            render_mode=OwnedVariantRenderMode.WIREFRAME,
+            hidden_parts=["shoes"],
+            morph_values={"smile": 0.4},
+        )
+        self.client.force_login(self.collector)
+
+        response = self.client.post(
+            "/catalogue/owned-variants/reset-state/",
+            {
+                "owned_variant_id": owned_variant.id,
+                "next": f"/catalogue/characters/{self.character.slug}/",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        owned_variant.refresh_from_db()
+        self.assertEqual(owned_variant.customization_state.render_mode, "normal")
+        self.assertEqual(owned_variant.customization_state.hidden_parts, [])
+        self.assertEqual(owned_variant.customization_state.morph_values, {})
 
 
 class CatalogueIndexViewTests(TestCase):

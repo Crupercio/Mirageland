@@ -3,10 +3,12 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
-from django.http import FileResponse, Http404
-from django.shortcuts import get_object_or_404, render
+from django.http import FileResponse, Http404, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
-from collection.models import OwnedVariant
+from collection.models import OwnedVariant, OwnedVariantRenderMode
+from collection.services import reset_variant_customization, update_variant_render_mode
 
 from .models import Character
 
@@ -47,11 +49,17 @@ def character_detail(request, slug):
         variants[0] if variants else None,
     )
 
-    owned_variant_ids = set(
+    owned_variants = list(
         OwnedVariant.objects.filter(user=collector, variant__character=character)
-        .values_list("variant_id", flat=True)
+        .select_related("variant", "customization_state")
     )
+    owned_variant_ids = {owned_variant.variant_id for owned_variant in owned_variants}
     selected_variant_owned = bool(selected_variant and selected_variant.id in owned_variant_ids)
+    selected_owned_variant = next(
+        (owned_variant for owned_variant in owned_variants if selected_variant and owned_variant.variant_id == selected_variant.id),
+        None,
+    )
+    selected_customization = getattr(selected_owned_variant, "customization_state", None)
 
     context = {
         "collector": collector,
@@ -59,9 +67,47 @@ def character_detail(request, slug):
         "variants": variants,
         "selected_variant": selected_variant,
         "selected_variant_owned": selected_variant_owned,
+        "selected_owned_variant": selected_owned_variant,
+        "selected_render_mode": (
+            selected_customization.render_mode
+            if selected_customization
+            else OwnedVariantRenderMode.NORMAL
+        ),
         "owned_variant_ids": owned_variant_ids,
     }
     return render(request, "catalogue/detail.html", context)
+
+
+@login_required
+@require_POST
+def save_variant_render_mode(request):
+    owned_variant_id = request.POST.get("owned_variant_id")
+    render_mode = request.POST.get("render_mode", "")
+
+    try:
+        customization_state = update_variant_render_mode(
+            request.user,
+            owned_variant_id=int(owned_variant_id or ""),
+            render_mode=render_mode,
+        )
+    except (TypeError, ValueError, OwnedVariant.DoesNotExist):
+        return JsonResponse({"ok": False, "error": "Could not save render mode."}, status=400)
+
+    return JsonResponse({"ok": True, "render_mode": customization_state.render_mode})
+
+
+@login_required
+@require_POST
+def reset_variant_display_state(request):
+    owned_variant_id = request.POST.get("owned_variant_id")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/catalogue/"
+
+    try:
+        reset_variant_customization(request.user, owned_variant_id=int(owned_variant_id or ""))
+    except (TypeError, ValueError, OwnedVariant.DoesNotExist):
+        return redirect(next_url)
+
+    return redirect(next_url)
 
 
 @login_required

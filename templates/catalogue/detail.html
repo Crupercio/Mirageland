@@ -38,6 +38,9 @@
                 data-model-path="{{ selected_variant.model_file_path }}"
                 data-model-url="{% url 'catalogue:model-asset' selected_variant.model_file_path %}"
                 data-variant-owned="{{ selected_variant_owned|yesno:'true,false' }}"
+                data-owned-variant-id="{% if selected_owned_variant %}{{ selected_owned_variant.id }}{% endif %}"
+                data-initial-render-mode="{{ selected_render_mode }}"
+                data-save-render-url="{% url 'catalogue:save-render-mode' %}"
                 data-scene-type="{{ selected_variant.scene_type }}"
                 data-color="{{ character.color_hex }}"
             >
@@ -65,6 +68,13 @@
                 </div>
             </div>
             <div class="viewer-toolbar">
+                {% if selected_variant_owned and selected_owned_variant %}
+                    <form id="viewer-reset-state-form" method="post" action="{% url 'catalogue:reset-display-state' %}" hidden>
+                        {% csrf_token %}
+                        <input type="hidden" name="owned_variant_id" value="{{ selected_owned_variant.id }}">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    </form>
+                {% endif %}
                 <div class="viewer-stats">
                     <div class="viewer-stat">
                         <strong>{{ selected_variant.name }}</strong>
@@ -281,8 +291,14 @@
         const modelPath = root.dataset.modelPath;
         const assetUrl = root.dataset.modelUrl;
         const variantOwned = root.dataset.variantOwned === "true";
+        const ownedVariantId = root.dataset.ownedVariantId || "";
+        const initialRenderMode = root.dataset.initialRenderMode || "normal";
+        const saveRenderUrl = root.dataset.saveRenderUrl || "";
         const characterSlug = root.dataset.characterSlug || "";
         const sceneType = root.dataset.sceneType || "base";
+        const resetStateForm = document.getElementById("viewer-reset-state-form");
+        const resetStateUrl = resetStateForm?.action || "";
+        const resetStateToken = resetStateForm?.querySelector('input[name="csrfmiddlewaretoken"]')?.value || "";
 
         const viewerPresets = {
             "sora-kasumi:base": {
@@ -516,7 +532,7 @@
         };
 
         let autoRotate = false;
-        let renderMode = variantOwned ? "normal" : "hologram";
+        let renderMode = variantOwned ? initialRenderMode : "hologram";
         let isDragging = false;
         let dragStartX = 0;
         let dragStartY = 0;
@@ -560,6 +576,58 @@
 
         const toggleInfoPopover = () => {
             infoPopover.hidden = !infoPopover.hidden;
+        };
+
+        const persistRenderMode = async (mode) => {
+            if (!variantOwned || !ownedVariantId || !saveRenderUrl) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("owned_variant_id", ownedVariantId);
+            formData.append("render_mode", mode);
+            if (resetStateToken) {
+                formData.append("csrfmiddlewaretoken", resetStateToken);
+            }
+
+            const response = await fetch(saveRenderUrl, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: formData,
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not save the viewer mode.");
+            }
+        };
+
+        const resetPersistedState = async () => {
+            if (!variantOwned || !ownedVariantId || !resetStateUrl) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("owned_variant_id", ownedVariantId);
+            formData.append("next", window.location.pathname + window.location.search);
+            if (resetStateToken) {
+                formData.append("csrfmiddlewaretoken", resetStateToken);
+            }
+
+            const response = await fetch(resetStateUrl, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: formData,
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not reset the viewer state.");
+            }
         };
 
         const buildUnlitMaterial = (material) => {
@@ -690,7 +758,7 @@
             lights.pedestal.material.color.set(preset.pedestalColor);
         };
 
-        const setMode = (mode) => {
+        const setMode = async (mode, { persist = true } = {}) => {
             if (!variantOwned && mode !== "hologram") {
                 return;
             }
@@ -712,6 +780,14 @@
                 }
             });
             syncViewerEffects();
+
+            if (persist && variantOwned && mode !== "hologram") {
+                try {
+                    await persistRenderMode(mode);
+                } catch (error) {
+                    console.warn(error);
+                }
+            }
         };
 
         const updateCamera = () => {
@@ -727,7 +803,7 @@
             camera.lookAt(lookTarget);
         };
 
-        const resetViewer = () => {
+        const resetViewer = async ({ persist = true } = {}) => {
             autoRotate = false;
             orbitYaw = 0;
             orbitPitch = -0.08;
@@ -740,7 +816,14 @@
                 modelAnchor.rotation.set(0, 0, 0);
                 modelAnchor.position.y = 0;
             }
-            setMode(variantOwned ? "normal" : "hologram");
+            if (persist && variantOwned) {
+                try {
+                    await resetPersistedState();
+                } catch (error) {
+                    console.warn(error);
+                }
+            }
+            await setMode(variantOwned ? "normal" : "hologram", { persist: false });
             syncRotateLabel();
             updateCamera();
         };
@@ -763,9 +846,13 @@
             autoRotate = !autoRotate;
             syncRotateLabel();
         });
-        resetButton.addEventListener("click", resetViewer);
+        resetButton.addEventListener("click", () => {
+            resetViewer();
+        });
         Object.entries(modeButtons).forEach(([mode, button]) => {
-            button.addEventListener("click", () => setMode(mode));
+            button.addEventListener("click", () => {
+                setMode(mode);
+            });
         });
 
         try {
@@ -959,7 +1046,7 @@
                         });
                         frameModel(loadedModel);
                         modelAnchor.add(loadedModel);
-                        resetViewer();
+                        resetViewer({ persist: false });
                         fallback.style.display = "none";
                         resolve();
                     },

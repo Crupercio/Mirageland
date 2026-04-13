@@ -5,7 +5,13 @@ from itertools import groupby
 
 from django.db import transaction
 
-from .models import DisplayRoom, OwnedVariant, ShelfSlot
+from .models import (
+    DisplayRoom,
+    OwnedVariant,
+    OwnedVariantCustomization,
+    OwnedVariantRenderMode,
+    ShelfSlot,
+)
 
 ROOM_THEMES = {
     "warm-library": "Warm Library",
@@ -92,7 +98,12 @@ def ensure_display_room(user) -> DisplayRoom:
 
 def get_room_slots(room: DisplayRoom) -> list[ShelfSlot]:
     return list(
-        room.slots.select_related("owned_variant", "owned_variant__variant", "owned_variant__variant__character")
+        room.slots.select_related(
+            "owned_variant",
+            "owned_variant__variant",
+            "owned_variant__variant__character",
+            "owned_variant__customization_state",
+        )
         .order_by("shelf_index", "display_order", "slot_index")
     )
 
@@ -250,6 +261,47 @@ def room_has_any_placement(user) -> bool:
         room__user=user,
         owned_variant__isnull=False,
     ).exists()
+
+
+def get_or_create_variant_customization(owned_variant: OwnedVariant) -> OwnedVariantCustomization:
+    customization_state, _ = OwnedVariantCustomization.objects.get_or_create(
+        owned_variant=owned_variant,
+        defaults={
+            "render_mode": OwnedVariantRenderMode.NORMAL,
+            "hidden_parts": [],
+            "morph_values": {},
+        },
+    )
+    return customization_state
+
+
+@transaction.atomic
+def update_variant_render_mode(user, owned_variant_id: int, render_mode: str) -> OwnedVariantCustomization:
+    if render_mode not in OwnedVariantRenderMode.values:
+        raise ValueError("Unknown render mode.")
+
+    owned_variant = OwnedVariant.objects.select_for_update().get(
+        id=owned_variant_id,
+        user=user,
+    )
+    customization_state = get_or_create_variant_customization(owned_variant)
+    customization_state.render_mode = render_mode
+    customization_state.save(update_fields=["render_mode", "updated_at"])
+    return customization_state
+
+
+@transaction.atomic
+def reset_variant_customization(user, owned_variant_id: int) -> OwnedVariantCustomization:
+    owned_variant = OwnedVariant.objects.select_for_update().get(
+        id=owned_variant_id,
+        user=user,
+    )
+    customization_state = get_or_create_variant_customization(owned_variant)
+    customization_state.render_mode = OwnedVariantRenderMode.NORMAL
+    customization_state.hidden_parts = []
+    customization_state.morph_values = {}
+    customization_state.save(update_fields=["render_mode", "hidden_parts", "morph_values", "updated_at"])
+    return customization_state
 
 
 def update_room_theme(user, theme_slug: str) -> DisplayRoom:

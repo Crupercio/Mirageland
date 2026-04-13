@@ -26,7 +26,7 @@ def room_detail(request):
     room = ensure_display_room(collector)
     room = (
         DisplayRoom.objects.select_related("user")
-        .prefetch_related("slots__owned_variant__variant__character")
+        .prefetch_related("slots__owned_variant__variant__character", "slots__owned_variant__customization_state")
         .get(id=room.id)
     )
     room_slots = get_room_slots(room)
@@ -37,7 +37,7 @@ def room_detail(request):
 
     owned_variants = (
         OwnedVariant.objects.filter(user=collector)
-        .select_related("variant", "variant__character")
+        .select_related("variant", "variant__character", "customization_state")
         .order_by("variant__unlock_order")
     )
 

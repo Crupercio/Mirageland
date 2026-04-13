@@ -318,11 +318,34 @@ Turn the room from a saved slot form into a visual showcase where occupied shelv
 - [x] Upgrade from per-slot previews to one unified multi-figurine 3D room scene
 - [x] Clean the room UX into a scene-first layout with compact controls
 - [x] Add unlockable shelf-slot progression with coin purchases
-- [ ] Add drag-and-drop or click-to-reposition room interactions
+- [x] Add drag-and-drop or click-to-reposition room interactions
 
 ### GitHub Checkpoint
 
 Push once saved placements are visible on the room wall and the room route remains stable.
+
+## Phase 15: Variant Customization State
+
+### Goal
+
+Persist player-owned figurine presentation choices so a customized look follows the owned variant across the character page and display room.
+
+### Tasks
+
+- [x] Add a per-owned-variant customization state model
+- [x] Persist render mode as the first shared customization setting
+- [x] Load saved render mode on the character viewer after login
+- [x] Reset customization state back to the owned variant default
+- [x] Reflect saved render mode inside the display room scene
+- [x] Scaffold hidden-part and morph-value fields for later lab editing
+- [ ] Build the dedicated lab/customizer page
+- [ ] Add hide/show part controls for supported meshes
+- [ ] Add morph and expression controls for supported models
+- [ ] Support multiple saved presets per owned variant
+
+### GitHub Checkpoint
+
+Push once saved render mode survives login/logout and the same owned variant looks consistent on both the character page and in the room.
 
 ## Push Rules
 

@@ -30,6 +30,34 @@ class OwnedVariant(models.Model):
         return f"{self.user.username} owns {self.variant}"
 
 
+class OwnedVariantRenderMode(models.TextChoices):
+    NORMAL = "normal", "Normal"
+    UNLIT = "unlit", "Unlit"
+    WIREFRAME = "wireframe", "Wireframe"
+
+
+class OwnedVariantCustomization(models.Model):
+    owned_variant = models.OneToOneField(
+        OwnedVariant,
+        on_delete=models.CASCADE,
+        related_name="customization_state",
+    )
+    render_mode = models.CharField(
+        max_length=20,
+        choices=OwnedVariantRenderMode.choices,
+        default=OwnedVariantRenderMode.NORMAL,
+    )
+    hidden_parts = models.JSONField(default=list, blank=True)
+    morph_values = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["owned_variant__variant__character__name", "owned_variant__variant__unlock_order"]
+
+    def __str__(self) -> str:
+        return f"{self.owned_variant} customization"
+
+
 class DisplayRoom(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

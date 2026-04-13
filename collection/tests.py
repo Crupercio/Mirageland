@@ -1,15 +1,19 @@
 from django.db import IntegrityError
 from django.test import TestCase
+from django.urls import reverse
 
 from accounts.models import User
 from catalogue.models import Character, Variant, VariantRarity, VariantSceneType
 from collection.models import OwnedVariant
 from collection.services import (
     ensure_display_room,
+    get_or_create_variant_customization,
     move_room_slot_variant,
     place_owned_variant,
+    reset_variant_customization,
     toggle_room_reaction,
     unlock_room_slot,
+    update_variant_render_mode,
     update_room_theme,
 )
 
@@ -159,3 +163,35 @@ class OwnedVariantModelTests(TestCase):
         room.refresh_from_db()
         self.assertFalse(reacted)
         self.assertEqual(room.reaction_count, 0)
+
+    def test_render_mode_customization_defaults_to_normal(self):
+        owned_variant = OwnedVariant.objects.create(user=self.user, variant=self.variant)
+
+        customization_state = get_or_create_variant_customization(owned_variant)
+
+        self.assertEqual(customization_state.render_mode, "normal")
+        self.assertEqual(customization_state.hidden_parts, [])
+        self.assertEqual(customization_state.morph_values, {})
+
+    def test_render_mode_customization_can_be_updated_and_reset(self):
+        owned_variant = OwnedVariant.objects.create(user=self.user, variant=self.variant)
+
+        customization_state = update_variant_render_mode(self.user, owned_variant.id, "wireframe")
+        self.assertEqual(customization_state.render_mode, "wireframe")
+
+        customization_state = reset_variant_customization(self.user, owned_variant.id)
+        self.assertEqual(customization_state.render_mode, "normal")
+        self.assertEqual(customization_state.hidden_parts, [])
+        self.assertEqual(customization_state.morph_values, {})
+
+    def test_room_detail_exposes_saved_render_mode_for_scene_slots(self):
+        owned_variant = OwnedVariant.objects.create(user=self.user, variant=self.variant)
+        room = ensure_display_room(self.user)
+        room.slots.filter(slot_index=2).update(owned_variant=owned_variant)
+        update_variant_render_mode(self.user, owned_variant.id, "unlit")
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("collection:room-detail"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-render-mode="unlit"')
