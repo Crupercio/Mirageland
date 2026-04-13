@@ -275,6 +275,37 @@ def get_or_create_variant_customization(owned_variant: OwnedVariant) -> OwnedVar
     return customization_state
 
 
+HIDEABLE_PART_KEYWORDS = (
+    "shoe",
+    "sock",
+    "boot",
+    "bag",
+    "purse",
+    "hat",
+    "cap",
+    "glass",
+    "glasses",
+    "ribbon",
+    "tie",
+    "scarf",
+    "accessory",
+)
+
+
+def filter_hideable_parts(part_names: list[str] | tuple[str, ...] | None) -> list[str]:
+    if not part_names:
+        return []
+    cleaned_parts: set[str] = set()
+    for part_name in part_names:
+        normalized = str(part_name).strip()
+        if not normalized:
+            continue
+        lowered = normalized.lower()
+        if any(keyword in lowered for keyword in HIDEABLE_PART_KEYWORDS):
+            cleaned_parts.add(normalized)
+    return sorted(cleaned_parts)
+
+
 @transaction.atomic
 def update_variant_render_mode(user, owned_variant_id: int, render_mode: str) -> OwnedVariantCustomization:
     return update_variant_customization(
@@ -308,13 +339,7 @@ def update_variant_customization(
         update_fields.append("render_mode")
 
     if hidden_parts is not None:
-        cleaned_hidden_parts = sorted(
-            {
-                str(part_name).strip()
-                for part_name in hidden_parts
-                if str(part_name).strip()
-            }
-        )
+        cleaned_hidden_parts = filter_hideable_parts(hidden_parts)
         customization_state.hidden_parts = cleaned_hidden_parts
         update_fields.append("hidden_parts")
 

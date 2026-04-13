@@ -10,6 +10,7 @@ from .services import (
     ROOM_THEMES,
     can_unlock_slot,
     ensure_display_room,
+    filter_hideable_parts,
     get_room_slots,
     move_room_slot_variant,
     group_slots_by_shelf,
@@ -38,7 +39,11 @@ def room_detail(request):
         slot.coins_short = max(slot.unlock_cost - collector.coins, 0)
         if slot.owned_variant:
             customization_state = getattr(slot.owned_variant, "customization_state", None)
-            slot.hidden_parts_json = json.dumps(customization_state.hidden_parts if customization_state else [])
+            slot.hidden_parts_json = json.dumps(
+                filter_hideable_parts(customization_state.hidden_parts)
+                if customization_state
+                else []
+            )
             slot.morph_values_json = json.dumps(customization_state.morph_values if customization_state else {})
         else:
             slot.hidden_parts_json = "[]"

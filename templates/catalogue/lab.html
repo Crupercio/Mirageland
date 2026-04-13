@@ -87,8 +87,8 @@
                         <button type="button" id="lab-save-state">Save state</button>
                         <button type="button" id="lab-rotate-toggle">Auto rotate</button>
                         <button type="button" id="lab-reset-camera">Reset framing</button>
-                        <button type="button" id="lab-reset-state">Reset state</button>
-                        <button type="button" id="lab-reset-all-states" class="button-link danger-button">Reset all states</button>
+                        <button type="submit" form="lab-reset-state-form" id="lab-reset-state">Reset state</button>
+                        <button type="submit" form="lab-reset-all-states-form" id="lab-reset-all-states" class="button-link danger-button">Reset all states</button>
                     </div>
                     <div id="lab-save-status" class="muted">Saved</div>
                 </div>
@@ -481,13 +481,11 @@ saveStateButton.addEventListener("click", async () => {
 });
 rotateToggle.addEventListener("click", () => { autoRotate = !autoRotate; syncRotateLabel(); });
 resetCameraButton.addEventListener("click", resetCamera);
-resetStateButton.addEventListener("click", async () => {
+resetStateForm.addEventListener("submit", () => {
     setSaveStatus("Resetting...");
-    resetStateForm.submit();
 });
-resetAllStatesButton.addEventListener("click", async () => {
+resetAllStatesForm.addEventListener("submit", () => {
     setSaveStatus("Resetting all...");
-    resetAllStatesForm.submit();
 });
 Object.entries(modeButtons).forEach(([mode, button]) => button.addEventListener("click", () => { renderMode = mode; applyRenderMode(); schedulePersistState(); }));
 partsSearch.addEventListener("input", renderPartsList);
@@ -612,7 +610,10 @@ try {
                 const unlitMaterial = Array.isArray(originalMaterial) ? originalMaterial.map((material) => buildUnlitMaterial(material)) : buildUnlitMaterial(originalMaterial);
                 const wireframeMaterial = Array.isArray(originalMaterial) ? originalMaterial.map((material) => buildWireframeMaterial(material)) : buildWireframeMaterial(originalMaterial);
                 meshEntries.push({ mesh: node, originalMaterial, unlitMaterial, wireframeMaterial });
-                if (node.name && !availableParts.some((part) => part.name === node.name)) {
+                const lowerName = (node.name || "").toLowerCase();
+                const hideableKeywords = ["shoe", "sock", "boot", "bag", "purse", "hat", "cap", "glass", "glasses", "ribbon", "tie", "scarf", "accessory"];
+                const isHideablePart = node.name && hideableKeywords.some((keyword) => lowerName.includes(keyword));
+                if (isHideablePart && !availableParts.some((part) => part.name === node.name)) {
                     availableParts.push({ name: node.name, label: humanize(node.name) });
                 }
                 if (node.morphTargetDictionary) {

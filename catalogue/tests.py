@@ -245,6 +245,21 @@ class CharacterDetailViewTests(TestCase):
         self.assertContains(response, 'data-hidden-parts="[\\u0022shoe\\u0022]"')
         self.assertContains(response, 'data-morph-values="{\\u0022smile\\u0022: 0.55}"')
 
+    def test_lab_view_filters_unsafe_hidden_parts(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        OwnedVariantCustomization.objects.create(
+            owned_variant=owned_variant,
+            render_mode=OwnedVariantRenderMode.NORMAL,
+            hidden_parts=["Body", "shoe", "Hair"],
+            morph_values={},
+        )
+        self.client.force_login(self.collector)
+
+        response = self.client.get(f"/catalogue/lab/?owned_variant={owned_variant.id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-hidden-parts="[\\u0022shoe\\u0022]"')
+
     def test_reset_all_states_endpoint_clears_all_owned_variant_customizations(self):
         owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
         OwnedVariantCustomization.objects.create(

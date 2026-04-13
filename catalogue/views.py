@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 
 from collection.models import OwnedVariant, OwnedVariantRenderMode
 from collection.services import (
+    filter_hideable_parts,
     reset_all_variant_customizations,
     reset_variant_customization,
     update_variant_customization,
@@ -79,7 +80,9 @@ def character_detail(request, slug):
             else OwnedVariantRenderMode.NORMAL
         ),
         "selected_hidden_parts_json": json.dumps(
-            selected_customization.hidden_parts if selected_customization else []
+            filter_hideable_parts(selected_customization.hidden_parts)
+            if selected_customization
+            else []
         ),
         "selected_morph_values_json": json.dumps(
             selected_customization.morph_values if selected_customization else {}
@@ -133,7 +136,9 @@ def customization_lab(request):
             else OwnedVariantRenderMode.NORMAL
         ),
         "selected_hidden_parts_json": json.dumps(
-            selected_customization.hidden_parts if selected_customization else []
+            filter_hideable_parts(selected_customization.hidden_parts)
+            if selected_customization
+            else []
         ),
         "selected_morph_values_json": json.dumps(
             selected_customization.morph_values if selected_customization else {}
