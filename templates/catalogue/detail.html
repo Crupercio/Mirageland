@@ -116,7 +116,12 @@
                     <h2>Variant Collection</h2>
                     <p class="muted">Swap variants and compare what is unlocked right now.</p>
                 </div>
-                <a class="button-link" href="{% url 'quests:hub' %}">Back to quest hub</a>
+                <div class="action-row">
+                    {% if selected_variant_owned and selected_owned_variant %}
+                        <a class="button-link" href="{% url 'catalogue:lab' %}?owned_variant={{ selected_owned_variant.id }}">Open in lab</a>
+                    {% endif %}
+                    <a class="button-link" href="{% url 'quests:hub' %}">Back to quest hub</a>
+                </div>
             </div>
             <div class="grid">
                 {% for variant in variants %}

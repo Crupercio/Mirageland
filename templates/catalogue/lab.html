@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}Lab | Mirageland{% endblock %}
+
+{% block content %}
+<main class="grid two-col">
+    <section class="panel stack-md">
+        <span class="eyebrow">Customizer</span>
+        <h1>Figurine Lab</h1>
+        <p class="muted">Save a personal display state for each owned figurine. What you set here will carry into the character viewer and your room display.</p>
+
+        {% if owned_variants %}
+            <div class="action-row">
+                {% if selected_character and selected_variant %}
+                    <a class="button-link" href="{% url 'catalogue:character-detail' selected_character.slug %}?variant={{ selected_variant.slug }}">Open character page</a>
+                {% endif %}
+                <a class="button-link" href="{% url 'collection:room-detail' %}">Open display room</a>
+            </div>
+
+            <div class="sub-panel stack-md">
+                <div class="split">
+                    <div>
+                        <h2 style="margin-bottom: 6px;">Owned Variants</h2>
+                        <p class="muted">Pick one owned collectible to customize.</p>
+                    </div>
+                    <span class="pill success">{{ owned_variants|length }} owned</span>
+                </div>
+                <div class="grid">
+                    {% for owned_variant in owned_variants %}
+                        <a
+                            href="{% url 'catalogue:lab' %}?owned_variant={{ owned_variant.id }}"
+                            class="sub-panel stack-sm"
+                            style="{% if selected_owned_variant and selected_owned_variant.id == owned_variant.id %}border-color: rgba(240, 163, 107, 0.58); background: linear-gradient(180deg, rgba(240, 163, 107, 0.12), rgba(255, 255, 255, 0.02));{% endif %}"
+                        >
+                            <div class="split">
+                                <div>
+                                    <strong>{{ owned_variant.variant.name }}</strong>
+                                    <p class="muted">{{ owned_variant.variant.character.name }}</p>
+                                </div>
+                                <span class="pill">{{ owned_variant.customization_state.render_mode|default:"normal"|title }}</span>
+                            </div>
+                            <p class="muted">{{ owned_variant.variant.short_description }}</p>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">Unlock a figurine first, then come back here to customize how it appears in Mirageland.</div>
+        {% endif %}
+    </section>
+
+    <section class="panel stack-md">
+        {% if selected_variant and selected_character and selected_owned_variant %}
+            <div class="split">
+                <div>
+                    <span class="eyebrow">{{ selected_character.name }}</span>
+                    <h2 style="margin-bottom: 6px;">{{ selected_variant.name }}</h2>
+                    <p class="muted">The lab currently saves render mode per owned variant. Hidden parts, morphs, and saved presets are the next upgrades.</p>
+                </div>
+                <div class="viewer-popover-wrap">
+                    <button type="button" id="lab-info-toggle" class="icon-button" aria-label="Lab help">i</button>
+                    <div id="lab-info-popover" class="viewer-popover" hidden>
+                        <div class="viewer-popover-header">
+                            <strong>Lab Controls</strong>
+                            <button type="button" id="lab-info-close" class="viewer-popover-close" aria-label="Close lab help">x</button>
+                        </div>
+                        <p class="muted">Drag to orbit, hold <strong>Shift</strong> to pan, use the mouse wheel to zoom, and save a render mode that will follow this owned figurine across the app.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                id="lab-viewer"
+                class="viewer-shell large"
+                data-model-url="{% url 'catalogue:model-asset' selected_variant.model_file_path %}"
+                data-owned-variant-id="{{ selected_owned_variant.id }}"
+                data-save-render-url="{% url 'catalogue:save-render-mode' %}"
+                data-reset-state-url="{% url 'catalogue:reset-display-state' %}"
+                data-initial-render-mode="{{ selected_render_mode }}"
+                data-character-color="{{ selected_character.color_hex }}"
+                data-variant-name="{{ selected_variant.name }}"
+            >
+                <div id="lab-viewer-stage" style="height: 100%; min-height: 700px; border-radius: 20px; position: relative; overflow: hidden;">
+                    <div id="lab-viewer-backdrop" aria-hidden="true"></div>
+                </div>
+                <div id="lab-viewer-fallback" class="muted" style="position: absolute; left: 22px; bottom: 22px; max-width: 340px; display: none;">
+                    Lab viewer unavailable right now.
+                </div>
+            </div>
+
+            <div class="viewer-toolbar">
+                <div class="viewer-stats">
+                    <div class="viewer-stat">
+                        <strong>{{ selected_variant.name }}</strong>
+                        <p class="muted">Active variant</p>
+                    </div>
+                    <div class="viewer-stat">
+                        <strong>{{ selected_render_mode|title }}</strong>
+                        <p class="muted">Saved mode</p>
+                    </div>
+                    <div class="viewer-stat">
+                        <strong>Shared</strong>
+                        <p class="muted">Character page + room</p>
+                    </div>
+                </div>
+                <div class="viewer-actions">
+                    <div class="viewer-motion-group">
+                        <button type="button" id="lab-rotate-toggle">Rotate</button>
+                        <button type="button" id="lab-reset-camera">Reset view</button>
+                        <button type="button" id="lab-reset-state">Reset state</button>
+                    </div>
+                    <div class="viewer-mode-group viewer-controls">
+                        <button type="button" id="lab-mode-normal">Normal</button>
+                        <button type="button" id="lab-mode-unlit">Unlit</button>
+                        <button type="button" id="lab-mode-wireframe">Wireframe</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-grid">
+                <div class="sub-panel stack-sm">
+                    <strong>Now saving</strong>
+                    <p class="muted">Render mode persists across login and shows the same way in the room scene.</p>
+                </div>
+                <div class="sub-panel stack-sm">
+                    <strong>Next control</strong>
+                    <p class="muted">Hide or show supported meshes like shoes, socks, bags, and other separated accessories.</p>
+                </div>
+                <div class="sub-panel stack-sm">
+                    <strong>After that</strong>
+                    <p class="muted">Morph and expression controls like blink, smile, and future saved presets.</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">No owned figurine is selected yet.</div>
+        {% endif %}
+    </section>
+</main>
+
+{% if selected_variant and selected_character and selected_owned_variant %}
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from "three";
+        import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+        const root = document.getElementById("lab-viewer");
+        const stage = document.getElementById("lab-viewer-stage");
+        const backdrop = document.getElementById("lab-viewer-backdrop");
+        const fallback = document.getElementById("lab-viewer-fallback");
+        const rotateToggle = document.getElementById("lab-rotate-toggle");
+        const resetCameraButton = document.getElementById("lab-reset-camera");
+        const resetStateButton = document.getElementById("lab-reset-state");
+        const infoToggle = document.getElementById("lab-info-toggle");
+        const infoPopover = document.getElementById("lab-info-popover");
+        const infoClose = document.getElementById("lab-info-close");
+        const modeButtons = {
+            normal: document.getElementById("lab-mode-normal"),
+            unlit: document.getElementById("lab-mode-unlit"),
+            wireframe: document.getElementById("lab-mode-wireframe"),
+        };
+
+        const assetUrl = root.dataset.modelUrl;
+        const ownedVariantId = root.dataset.ownedVariantId;
+        const saveRenderUrl = root.dataset.saveRenderUrl;
+        const resetStateUrl = root.dataset.resetStateUrl;
+        const initialRenderMode = root.dataset.initialRenderMode || "normal";
+        const characterColor = root.dataset.characterColor || "#f0a36b";
+        const variantName = root.dataset.variantName || "Variant";
+        const csrfToken = "{{ csrf_token }}";
+
+        let autoRotate = false;
+        let renderMode = initialRenderMode;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let orbitYaw = 0;
+        let orbitPitch = -0.08;
+        let cameraDistance = 9.8;
+        let cameraHeight = 1.45;
+        let cameraLookY = 1.15;
+        let panOffsetX = 0;
+        let panOffsetY = 0;
+        let defaultCameraDistance = 9.8;
+        let defaultCameraHeight = 1.45;
+        let defaultLookY = 1.15;
+        const panSensitivity = 0.004;
+        const orbitSensitivity = 0.007;
+
+        const meshEntries = [];
+        let modelAnchor = null;
+        let loadedModel = null;
+        let camera = null;
+
+        const closeInfoPopover = () => {
+            infoPopover.hidden = true;
+        };
+
+        const persistRenderMode = async (mode) => {
+            const formData = new FormData();
+            formData.append("owned_variant_id", ownedVariantId);
+            formData.append("render_mode", mode);
+            formData.append("csrfmiddlewaretoken", csrfToken);
+
+            const response = await fetch(saveRenderUrl, {
+                method: "POST",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                body: formData,
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not save the lab state.");
+            }
+        };
+
+        const resetPersistedState = async () => {
+            const formData = new FormData();
+            formData.append("owned_variant_id", ownedVariantId);
+            formData.append("next", window.location.pathname + window.location.search);
+            formData.append("csrfmiddlewaretoken", csrfToken);
+
+            const response = await fetch(resetStateUrl, {
+                method: "POST",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                body: formData,
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not reset the lab state.");
+            }
+        };
+
+        const fallbackText = (message) => {
+            fallback.style.display = "block";
+            fallback.textContent = message || "Lab viewer unavailable right now.";
+        };
+
+        const syncRotateLabel = () => {
+            rotateToggle.textContent = autoRotate ? "Stop" : "Rotate";
+        };
+
+        const syncModeButtons = () => {
+            Object.entries(modeButtons).forEach(([mode, button]) => {
+                button.classList.toggle("is-active", mode === renderMode);
+            });
+        };
+
+        const buildUnlitMaterial = (material) => {
+            return new THREE.MeshBasicMaterial({
+                color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+                map: material.map || null,
+                transparent: material.transparent || false,
+                opacity: material.opacity ?? 1,
+                side: material.side,
+                alphaTest: material.alphaTest || 0,
+            });
+        };
+
+        const buildWireframeMaterial = (material) => {
+            return new THREE.MeshBasicMaterial({
+                color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+                map: material.map || null,
+                transparent: true,
+                opacity: 1,
+                side: THREE.DoubleSide,
+                alphaTest: material.alphaTest || 0,
+                wireframe: true,
+            });
+        };
+
+        const setMode = async (mode, { persist = true } = {}) => {
+            renderMode = mode;
+            syncModeButtons();
+            meshEntries.forEach((entry) => {
+                if (mode === "normal") {
+                    entry.mesh.material = entry.originalMaterial;
+                } else if (mode === "unlit") {
+                    entry.mesh.material = entry.unlitMaterial;
+                } else {
+                    entry.mesh.material = entry.wireframeMaterial;
+                }
+            });
+
+            if (persist) {
+                try {
+                    await persistRenderMode(mode);
+                } catch (error) {
+                    console.warn(error);
+                }
+            }
+        };
+
+        const updateCamera = () => {
+            if (!camera) {
+                return;
+            }
+            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.55, 0.55);
+            const x = Math.sin(orbitYaw) * Math.cos(pitch) * cameraDistance;
+            const y = Math.sin(pitch) * cameraDistance + cameraHeight;
+            const z = Math.cos(orbitYaw) * Math.cos(pitch) * cameraDistance;
+            camera.position.set(x + panOffsetX, y + panOffsetY, z);
+            camera.lookAt(new THREE.Vector3(panOffsetX, cameraLookY + panOffsetY, 0));
+        };
+
+        const resetCamera = () => {
+            autoRotate = false;
+            orbitYaw = 0;
+            orbitPitch = -0.08;
+            cameraDistance = defaultCameraDistance;
+            cameraHeight = defaultCameraHeight;
+            cameraLookY = defaultLookY;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            if (modelAnchor) {
+                modelAnchor.rotation.set(0, 0, 0);
+            }
+            syncRotateLabel();
+            updateCamera();
+        };
+
+        syncRotateLabel();
+        syncModeButtons();
+
+        infoToggle.addEventListener("click", (event) => {
+            event.stopPropagation();
+            infoPopover.hidden = !infoPopover.hidden;
+        });
+        infoClose.addEventListener("click", closeInfoPopover);
+        document.addEventListener("click", (event) => {
+            if (!infoPopover.hidden && !infoPopover.contains(event.target) && event.target !== infoToggle) {
+                closeInfoPopover();
+            }
+        });
+
+        rotateToggle.addEventListener("click", () => {
+            autoRotate = !autoRotate;
+            syncRotateLabel();
+        });
+        resetCameraButton.addEventListener("click", resetCamera);
+        resetStateButton.addEventListener("click", async () => {
+            try {
+                await resetPersistedState();
+            } catch (error) {
+                console.warn(error);
+            }
+            await setMode("normal", { persist: false });
+            resetCamera();
+        });
+        Object.entries(modeButtons).forEach(([mode, button]) => {
+            button.addEventListener("click", () => {
+                setMode(mode);
+            });
+        });
+
+        try {
+            backdrop.style.cssText = `
+                position: absolute;
+                inset: 0;
+                border-radius: 20px;
+                background:
+                    radial-gradient(circle at 50% 18%, ${characterColor}22, transparent 28%),
+                    radial-gradient(circle at 78% 24%, rgba(255,255,255,0.08), transparent 18%),
+                    linear-gradient(180deg, rgba(20, 25, 39, 0.98), rgba(15, 20, 32, 0.98));
+            `;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio || 1);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.setSize(stage.clientWidth || 840, stage.clientHeight || 700);
+            stage.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(25, (stage.clientWidth || 840) / (stage.clientHeight || 700), 0.1, 100);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 1.1);
+            const keyLight = new THREE.DirectionalLight(0xfff2de, 1.42);
+            keyLight.position.set(4, 6, 6);
+            const fillLight = new THREE.DirectionalLight(0xc4dfff, 0.78);
+            fillLight.position.set(-4, 3, 4);
+            const rimLight = new THREE.DirectionalLight(new THREE.Color(characterColor), 0.68);
+            rimLight.position.set(0, 4, -5);
+            scene.add(ambient, keyLight, fillLight, rimLight);
+
+            const pedestal = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.45, 1.75, 0.3, 48),
+                new THREE.MeshPhysicalMaterial({
+                    color: "#f0ddbd",
+                    metalness: 0.05,
+                    roughness: 0.74,
+                })
+            );
+            pedestal.position.y = -1.65;
+            scene.add(pedestal);
+
+            modelAnchor = new THREE.Group();
+            scene.add(modelAnchor);
+
+            const loader = new GLTFLoader();
+
+            const resize = () => {
+                const width = stage.clientWidth || 840;
+                const height = stage.clientHeight || 700;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            };
+
+            const frameModel = (model) => {
+                const initialBox = new THREE.Box3().setFromObject(model);
+                const initialSize = initialBox.getSize(new THREE.Vector3());
+                const targetHeight = 5.1;
+                const scale = targetHeight / Math.max(initialSize.y, 0.01);
+                model.scale.setScalar(scale);
+
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const pedestalTop = pedestal.position.y + 0.22;
+
+                model.position.x -= center.x;
+                model.position.z -= center.z;
+                model.position.y += pedestalTop - box.min.y;
+
+                const framedBox = new THREE.Box3().setFromObject(model);
+                const framedSize = framedBox.getSize(new THREE.Vector3());
+                const framedCenter = framedBox.getCenter(new THREE.Vector3());
+                cameraLookY = framedCenter.y + framedSize.y * 0.08;
+                const fitHeight = framedSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+                const fitWidth = (framedSize.x / camera.aspect) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+                cameraDistance = Math.max(fitHeight, fitWidth) * 1.8 + framedSize.z * 0.65;
+                cameraHeight = cameraLookY + framedSize.y * 0.02;
+                defaultCameraDistance = cameraDistance;
+                defaultCameraHeight = cameraHeight;
+                defaultLookY = cameraLookY;
+                updateCamera();
+            };
+
+            fallbackText("Loading lab model...");
+            window.addEventListener("resize", resize);
+            resize();
+
+            stage.addEventListener("pointerdown", (event) => {
+                isDragging = true;
+                dragStartX = event.clientX;
+                dragStartY = event.clientY;
+                stage.setPointerCapture(event.pointerId);
+            });
+
+            stage.addEventListener("pointermove", (event) => {
+                if (!isDragging || !modelAnchor) {
+                    return;
+                }
+                const deltaX = event.clientX - dragStartX;
+                const deltaY = event.clientY - dragStartY;
+                dragStartX = event.clientX;
+                dragStartY = event.clientY;
+
+                if (event.shiftKey) {
+                    panOffsetX += deltaX * panSensitivity;
+                    panOffsetY -= deltaY * panSensitivity;
+                } else {
+                    orbitYaw += deltaX * orbitSensitivity;
+                    orbitPitch -= deltaY * orbitSensitivity;
+                }
+                updateCamera();
+            });
+
+            const stopDrag = (event) => {
+                if (isDragging) {
+                    isDragging = false;
+                    stage.releasePointerCapture(event.pointerId);
+                }
+            };
+
+            stage.addEventListener("pointerup", stopDrag);
+            stage.addEventListener("pointerleave", (event) => {
+                if (isDragging) {
+                    stopDrag(event);
+                }
+            });
+
+            stage.addEventListener(
+                "wheel",
+                (event) => {
+                    event.preventDefault();
+                    cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.008, 4.9, 17);
+                    updateCamera();
+                },
+                { passive: false }
+            );
+
+            await new Promise((resolve, reject) => {
+                loader.load(
+                    assetUrl,
+                    (gltf) => {
+                        loadedModel = gltf.scene;
+                        loadedModel.traverse((node) => {
+                            if (node.isMesh) {
+                                const originalMaterial = node.material;
+                                const unlitMaterial = Array.isArray(originalMaterial)
+                                    ? originalMaterial.map((material) => buildUnlitMaterial(material))
+                                    : buildUnlitMaterial(originalMaterial);
+                                const wireframeMaterial = Array.isArray(originalMaterial)
+                                    ? originalMaterial.map((material) => buildWireframeMaterial(material))
+                                    : buildWireframeMaterial(originalMaterial);
+
+                                meshEntries.push({
+                                    mesh: node,
+                                    originalMaterial,
+                                    unlitMaterial,
+                                    wireframeMaterial,
+                                });
+                            }
+                        });
+                        frameModel(loadedModel);
+                        modelAnchor.add(loadedModel);
+                        resetCamera();
+                        setMode(initialRenderMode, { persist: false });
+                        fallback.style.display = "none";
+                        resolve();
+                    },
+                    undefined,
+                    reject
+                );
+            });
+
+            const clock = new THREE.Clock();
+            const animate = () => {
+                const elapsed = clock.getElapsedTime();
+                if (loadedModel && autoRotate) {
+                    orbitYaw += 0.005;
+                }
+                updateCamera();
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            };
+            animate();
+        } catch (error) {
+            fallbackText("Lab viewer unavailable right now.");
+            console.warn(error);
+        }
+    </script>
+{% endif %}
+{% endblock %}

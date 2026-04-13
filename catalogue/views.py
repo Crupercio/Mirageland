@@ -79,6 +79,53 @@ def character_detail(request, slug):
 
 
 @login_required
+def customization_lab(request):
+    collector = request.user
+    owned_variants = list(
+        OwnedVariant.objects.filter(user=collector)
+        .select_related("variant", "variant__character", "customization_state")
+        .order_by("variant__character__name", "variant__unlock_order", "id")
+    )
+
+    selected_owned_variant = None
+    selected_owned_variant_id = request.GET.get("owned_variant")
+    if selected_owned_variant_id:
+        try:
+            selected_owned_variant = next(
+                owned_variant
+                for owned_variant in owned_variants
+                if owned_variant.id == int(selected_owned_variant_id)
+            )
+        except (StopIteration, ValueError):
+            selected_owned_variant = None
+
+    if selected_owned_variant is None and owned_variants:
+        selected_owned_variant = owned_variants[0]
+
+    selected_character = selected_owned_variant.variant.character if selected_owned_variant else None
+    selected_variant = selected_owned_variant.variant if selected_owned_variant else None
+    selected_customization = (
+        getattr(selected_owned_variant, "customization_state", None)
+        if selected_owned_variant
+        else None
+    )
+
+    context = {
+        "collector": collector,
+        "owned_variants": owned_variants,
+        "selected_owned_variant": selected_owned_variant,
+        "selected_character": selected_character,
+        "selected_variant": selected_variant,
+        "selected_render_mode": (
+            selected_customization.render_mode
+            if selected_customization
+            else OwnedVariantRenderMode.NORMAL
+        ),
+    }
+    return render(request, "catalogue/lab.html", context)
+
+
+@login_required
 @require_POST
 def save_variant_render_mode(request):
     owned_variant_id = request.POST.get("owned_variant_id")

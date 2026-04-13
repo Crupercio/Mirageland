@@ -235,3 +235,48 @@ class CatalogueIndexViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login/", response["Location"])
+
+
+class CustomizationLabViewTests(TestCase):
+    def setUp(self):
+        self.collector = User.objects.create_user(
+            username="lab_collector",
+            password="testpass123",
+        )
+        self.character = Character.objects.create(
+            name="Mei Huang",
+            archetype="The Spark / Open Door",
+            short_description="A bright presence who keeps the room warm.",
+            lore_quote="A little laughter opens more doors than force.",
+            color_hex="#D4A04F",
+        )
+        self.base_variant = Variant.objects.create(
+            character=self.character,
+            name="Mei Base",
+            scene_type=VariantSceneType.BASE,
+            unlock_order=1,
+            rarity=VariantRarity.STANDARD,
+            short_description="Mei with warm collector energy.",
+            model_file_path="models/characters/mei/base.glb",
+        )
+        self.owned_variant = OwnedVariant.objects.create(user=self.collector, variant=self.base_variant)
+
+    def test_lab_requires_login(self):
+        response = self.client.get("/catalogue/lab/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_lab_renders_owned_variant_and_saved_state(self):
+        OwnedVariantCustomization.objects.create(
+            owned_variant=self.owned_variant,
+            render_mode=OwnedVariantRenderMode.WIREFRAME,
+        )
+        self.client.force_login(self.collector)
+
+        response = self.client.get("/catalogue/lab/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Figurine Lab")
+        self.assertContains(response, "Mei Base")
+        self.assertContains(response, 'data-initial-render-mode="wireframe"')
