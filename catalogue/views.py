@@ -187,9 +187,27 @@ def reset_variant_display_state(request):
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/catalogue/"
 
     try:
-        reset_variant_customization(request.user, owned_variant_id=int(owned_variant_id or ""))
+        customization_state = reset_variant_customization(
+            request.user,
+            owned_variant_id=int(owned_variant_id or ""),
+        )
     except (TypeError, ValueError, OwnedVariant.DoesNotExist):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse(
+                {"ok": False, "error": "Could not reset the customization state."},
+                status=400,
+            )
         return redirect(next_url)
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "ok": True,
+                "render_mode": customization_state.render_mode,
+                "hidden_parts": customization_state.hidden_parts,
+                "morph_values": customization_state.morph_values,
+            }
+        )
 
     return redirect(next_url)
 

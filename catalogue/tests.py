@@ -200,6 +200,48 @@ class CharacterDetailViewTests(TestCase):
         self.assertEqual(owned_variant.customization_state.hidden_parts, [])
         self.assertEqual(owned_variant.customization_state.morph_values, {})
 
+    def test_render_mode_reset_endpoint_returns_json_for_ajax_requests(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        OwnedVariantCustomization.objects.create(
+            owned_variant=owned_variant,
+            render_mode=OwnedVariantRenderMode.WIREFRAME,
+            hidden_parts=["shoes"],
+            morph_values={"smile": 0.4},
+        )
+        self.client.force_login(self.collector)
+
+        response = self.client.post(
+            "/catalogue/owned-variants/reset-state/",
+            {
+                "owned_variant_id": owned_variant.id,
+                "next": f"/catalogue/characters/{self.character.slug}/",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["render_mode"], "normal")
+        self.assertEqual(payload["hidden_parts"], [])
+        self.assertEqual(payload["morph_values"], {})
+
+    def test_lab_view_loads_saved_hidden_parts_and_morph_values(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        OwnedVariantCustomization.objects.create(
+            owned_variant=owned_variant,
+            render_mode=OwnedVariantRenderMode.UNLIT,
+            hidden_parts=["shoe"],
+            morph_values={"smile": 0.55},
+        )
+        self.client.force_login(self.collector)
+
+        response = self.client.get(f"/catalogue/lab/?owned_variant={owned_variant.id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-initial-render-mode="unlit"')
+        self.assertContains(response, 'data-hidden-parts="[\\u0022shoe\\u0022]"')
+        self.assertContains(response, 'data-morph-values="{\\u0022smile\\u0022: 0.55}"')
+
 
 class CatalogueIndexViewTests(TestCase):
     def setUp(self):

@@ -24,7 +24,7 @@
         </div>
 
         {% if owned_variants %}
-            <form method="get" class="lab-selector-form">
+            <form method="get" class="lab-selector-form" id="lab-selector-form">
                 <label class="field" for="owned_variant">
                     <span>Active figurine</span>
                     <select id="owned_variant" name="owned_variant" onchange="this.form.submit()">
@@ -62,9 +62,7 @@
                     data-morph-values="{{ selected_morph_values_json|escapejs }}"
                     data-character-color="{{ selected_character.color_hex }}"
                 >
-                    <div id="lab-viewer-stage" class="lab-viewer-stage">
-                        <div id="lab-viewer-backdrop" class="lab-viewer-backdrop"></div>
-                    </div>
+                    <div id="lab-viewer-stage" class="lab-viewer-stage"></div>
                     <div id="lab-viewer-fallback" class="muted lab-viewer-fallback">Lab viewer unavailable right now.</div>
                 </div>
 
@@ -155,8 +153,11 @@
     .lab-viewer-topbar, .lab-stage-footer, .lab-stage-hints, .lab-stage-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
     .lab-viewer-topbar { justify-content:flex-start; }
     .lab-viewer-shell { padding: 16px; }
-    .lab-viewer-stage { min-height: 880px; height:100%; position:relative; overflow:hidden; border-radius:22px; background:linear-gradient(180deg, rgba(18,24,36,.98), rgba(15,19,30,.98)); }
-    .lab-viewer-backdrop { position:absolute; inset:0; border-radius:22px; pointer-events:none; }
+    .lab-viewer-stage { min-height: 880px; height:100%; position:relative; overflow:hidden; border-radius:22px; background:
+        radial-gradient(circle at 50% 22%, rgba(240, 163, 107, .16), transparent 26%),
+        radial-gradient(circle at 78% 24%, rgba(255,255,255,0.07), transparent 18%),
+        linear-gradient(180deg, rgba(26, 34, 52, .98), rgba(20, 26, 40, .98)); }
+    .lab-viewer-stage canvas { display:block; width:100%; height:100%; }
     .lab-viewer-fallback { position:absolute; left:22px; bottom:22px; max-width:340px; display:none; }
     .lab-mode-grid { display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); }
     .lab-control-button { display:grid; gap:6px; align-content:start; min-height:92px; padding:16px; border-radius:20px; text-align:left; }
@@ -188,8 +189,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const root = document.getElementById("lab-viewer");
 const stage = document.getElementById("lab-viewer-stage");
-const backdrop = document.getElementById("lab-viewer-backdrop");
 const fallback = document.getElementById("lab-viewer-fallback");
+const selectorForm = document.getElementById("lab-selector-form");
 const rotateToggle = document.getElementById("lab-rotate-toggle");
 const resetCameraButton = document.getElementById("lab-reset-camera");
 const resetStateButton = document.getElementById("lab-reset-state");
@@ -246,6 +247,7 @@ let modelAnchor = null;
 let loadedModel = null;
 let camera = null;
 let persistTimer = null;
+let persistInFlight = null;
 
 const humanize = (value) => String(value || "").replace(/[_\-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 const closeInfoPopover = () => { infoPopover.hidden = true; };
@@ -279,13 +281,34 @@ const persistState = async () => {
     formData.append("hidden_parts", JSON.stringify(hiddenParts));
     formData.append("morph_values", JSON.stringify(morphValues));
     formData.append("csrfmiddlewaretoken", csrfToken);
-    const response = await fetch(saveStateUrl, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, body: formData, credentials: "same-origin" });
+    const response = await fetch(saveStateUrl, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, body: formData, credentials: "same-origin", keepalive: true });
     if (!response.ok) { throw new Error("Could not save the lab state."); }
+    const payload = await response.json();
+    root.dataset.hiddenParts = JSON.stringify(payload.hidden_parts || []);
+    root.dataset.morphValues = JSON.stringify(payload.morph_values || {});
+    root.dataset.initialRenderMode = payload.render_mode || "normal";
+    return payload;
 };
 
 const schedulePersistState = () => {
     window.clearTimeout(persistTimer);
-    persistTimer = window.setTimeout(() => { persistState().catch((error) => console.warn(error)); }, 180);
+    persistTimer = window.setTimeout(() => {
+        persistInFlight = persistState().catch((error) => console.warn(error)).finally(() => { persistInFlight = null; });
+    }, 180);
+};
+
+const persistStateNow = async () => {
+    window.clearTimeout(persistTimer);
+    if (persistInFlight) {
+        await persistInFlight.catch(() => undefined);
+        return;
+    }
+    persistInFlight = persistState().catch((error) => {
+        console.warn(error);
+    }).finally(() => {
+        persistInFlight = null;
+    });
+    await persistInFlight;
 };
 
 const resetPersistedState = async () => {
@@ -295,6 +318,7 @@ const resetPersistedState = async () => {
     formData.append("csrfmiddlewaretoken", csrfToken);
     const response = await fetch(resetStateUrl, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, body: formData, credentials: "same-origin" });
     if (!response.ok) { throw new Error("Could not reset the lab state."); }
+    return response.json();
 };
 
 const applyRenderMode = () => {
@@ -430,10 +454,18 @@ document.addEventListener("click", (event) => { if (!infoPopover.hidden && !info
 rotateToggle.addEventListener("click", () => { autoRotate = !autoRotate; syncRotateLabel(); });
 resetCameraButton.addEventListener("click", resetCamera);
 resetStateButton.addEventListener("click", async () => {
-    try { await resetPersistedState(); } catch (error) { console.warn(error); }
-    renderMode = "normal";
-    hiddenParts = [];
-    morphValues = {};
+    window.clearTimeout(persistTimer);
+    try {
+        const payload = await resetPersistedState();
+        renderMode = payload.render_mode || "normal";
+        hiddenParts = payload.hidden_parts || [];
+        morphValues = payload.morph_values || {};
+    } catch (error) {
+        console.warn(error);
+        renderMode = "normal";
+        hiddenParts = [];
+        morphValues = {};
+    }
     applyRenderMode();
     applyCustomizationState();
     renderPartsList();
@@ -442,27 +474,35 @@ resetStateButton.addEventListener("click", async () => {
 });
 Object.entries(modeButtons).forEach(([mode, button]) => button.addEventListener("click", () => { renderMode = mode; applyRenderMode(); schedulePersistState(); }));
 partsSearch.addEventListener("input", renderPartsList);
+if (selectorForm) {
+    selectorForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        await persistStateNow();
+        selectorForm.submit();
+    });
+}
 
 try {
-    backdrop.style.background = `radial-gradient(circle at 50% 18%, ${characterColor}22, transparent 28%), radial-gradient(circle at 78% 24%, rgba(255,255,255,0.08), transparent 18%), linear-gradient(180deg, rgba(20,25,39,0.98), rgba(15,20,32,0.98))`;
-
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
     renderer.setSize(stage.clientWidth || 840, stage.clientHeight || 880);
     stage.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(25, (stage.clientWidth || 840) / (stage.clientHeight || 880), 0.1, 100);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 1.08);
-    const keyLight = new THREE.DirectionalLight(0xfff2de, 1.42);
+    const ambient = new THREE.AmbientLight(0xffffff, 1.28);
+    const hemi = new THREE.HemisphereLight(0xf7f2e7, 0x3f4f78, 0.82);
+    const keyLight = new THREE.DirectionalLight(0xfff2de, 1.75);
     keyLight.position.set(4, 6, 6);
-    const fillLight = new THREE.DirectionalLight(0xc4dfff, 0.78);
+    const fillLight = new THREE.DirectionalLight(0xc4dfff, 1.02);
     fillLight.position.set(-4, 3, 4);
-    const rimLight = new THREE.DirectionalLight(new THREE.Color(characterColor), 0.68);
+    const rimLight = new THREE.DirectionalLight(new THREE.Color(characterColor), 0.78);
     rimLight.position.set(0, 4, -5);
-    scene.add(ambient, keyLight, fillLight, rimLight);
+    scene.add(ambient, hemi, keyLight, fillLight, rimLight);
 
     const pedestal = new THREE.Mesh(
         new THREE.CylinderGeometry(1.45, 1.75, 0.3, 48),
@@ -508,7 +548,7 @@ try {
         updateCamera();
     };
 
-    fallbackText("Loading lab model...");
+    fallback.style.display = "none";
     window.addEventListener("resize", resize);
     resize();
 
