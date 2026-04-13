@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from django.conf import settings
@@ -8,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from collection.models import OwnedVariant, OwnedVariantRenderMode
-from collection.services import reset_variant_customization, update_variant_render_mode
+from collection.services import reset_variant_customization, update_variant_customization
 
 from .models import Character
 
@@ -73,6 +74,12 @@ def character_detail(request, slug):
             if selected_customization
             else OwnedVariantRenderMode.NORMAL
         ),
+        "selected_hidden_parts_json": json.dumps(
+            selected_customization.hidden_parts if selected_customization else []
+        ),
+        "selected_morph_values_json": json.dumps(
+            selected_customization.morph_values if selected_customization else {}
+        ),
         "owned_variant_ids": owned_variant_ids,
     }
     return render(request, "catalogue/detail.html", context)
@@ -121,6 +128,12 @@ def customization_lab(request):
             if selected_customization
             else OwnedVariantRenderMode.NORMAL
         ),
+        "selected_hidden_parts_json": json.dumps(
+            selected_customization.hidden_parts if selected_customization else []
+        ),
+        "selected_morph_values_json": json.dumps(
+            selected_customization.morph_values if selected_customization else {}
+        ),
     }
     return render(request, "catalogue/lab.html", context)
 
@@ -130,17 +143,41 @@ def customization_lab(request):
 def save_variant_render_mode(request):
     owned_variant_id = request.POST.get("owned_variant_id")
     render_mode = request.POST.get("render_mode", "")
+    hidden_parts_raw = request.POST.get("hidden_parts", "")
+    morph_values_raw = request.POST.get("morph_values", "")
+
+    hidden_parts = None
+    morph_values = None
+    if hidden_parts_raw:
+        try:
+            hidden_parts = json.loads(hidden_parts_raw)
+        except json.JSONDecodeError:
+            return JsonResponse({"ok": False, "error": "Hidden parts payload is invalid."}, status=400)
+    if morph_values_raw:
+        try:
+            morph_values = json.loads(morph_values_raw)
+        except json.JSONDecodeError:
+            return JsonResponse({"ok": False, "error": "Morph values payload is invalid."}, status=400)
 
     try:
-        customization_state = update_variant_render_mode(
+        customization_state = update_variant_customization(
             request.user,
             owned_variant_id=int(owned_variant_id or ""),
             render_mode=render_mode,
+            hidden_parts=hidden_parts,
+            morph_values=morph_values,
         )
     except (TypeError, ValueError, OwnedVariant.DoesNotExist):
-        return JsonResponse({"ok": False, "error": "Could not save render mode."}, status=400)
+        return JsonResponse({"ok": False, "error": "Could not save the customization state."}, status=400)
 
-    return JsonResponse({"ok": True, "render_mode": customization_state.render_mode})
+    return JsonResponse(
+        {
+            "ok": True,
+            "render_mode": customization_state.render_mode,
+            "hidden_parts": customization_state.hidden_parts,
+            "morph_values": customization_state.morph_values,
+        }
+    )
 
 
 @login_required

@@ -277,7 +277,23 @@ def get_or_create_variant_customization(owned_variant: OwnedVariant) -> OwnedVar
 
 @transaction.atomic
 def update_variant_render_mode(user, owned_variant_id: int, render_mode: str) -> OwnedVariantCustomization:
-    if render_mode not in OwnedVariantRenderMode.values:
+    return update_variant_customization(
+        user,
+        owned_variant_id=owned_variant_id,
+        render_mode=render_mode,
+    )
+
+
+@transaction.atomic
+def update_variant_customization(
+    user,
+    owned_variant_id: int,
+    *,
+    render_mode: str | None = None,
+    hidden_parts: list[str] | None = None,
+    morph_values: dict[str, float] | None = None,
+) -> OwnedVariantCustomization:
+    if render_mode is not None and render_mode not in OwnedVariantRenderMode.values:
         raise ValueError("Unknown render mode.")
 
     owned_variant = OwnedVariant.objects.select_for_update().get(
@@ -285,8 +301,34 @@ def update_variant_render_mode(user, owned_variant_id: int, render_mode: str) ->
         user=user,
     )
     customization_state = get_or_create_variant_customization(owned_variant)
-    customization_state.render_mode = render_mode
-    customization_state.save(update_fields=["render_mode", "updated_at"])
+    update_fields = ["updated_at"]
+
+    if render_mode is not None:
+        customization_state.render_mode = render_mode
+        update_fields.append("render_mode")
+
+    if hidden_parts is not None:
+        cleaned_hidden_parts = sorted(
+            {
+                str(part_name).strip()
+                for part_name in hidden_parts
+                if str(part_name).strip()
+            }
+        )
+        customization_state.hidden_parts = cleaned_hidden_parts
+        update_fields.append("hidden_parts")
+
+    if morph_values is not None:
+        cleaned_morph_values = {}
+        for morph_name, morph_value in morph_values.items():
+            try:
+                cleaned_morph_values[str(morph_name)] = round(float(morph_value), 4)
+            except (TypeError, ValueError):
+                continue
+        customization_state.morph_values = cleaned_morph_values
+        update_fields.append("morph_values")
+
+    customization_state.save(update_fields=update_fields)
     return customization_state
 
 

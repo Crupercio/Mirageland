@@ -73,6 +73,8 @@
                             data-variant-name="{{ slot.owned_variant.variant.name }}"
                             data-character-name="{{ slot.owned_variant.variant.character.name }}"
                             data-render-mode="{% if slot.owned_variant.customization_state %}{{ slot.owned_variant.customization_state.render_mode }}{% else %}normal{% endif %}"
+                            data-hidden-parts="{{ slot.hidden_parts_json|escapejs }}"
+                            data-morph-values="{{ slot.morph_values_json|escapejs }}"
                         {% endif %}
                     ></div>
                 {% endfor %}
@@ -1038,6 +1040,23 @@
             });
         };
 
+        const applyCustomizationState = (root, hiddenParts, morphValues) => {
+            const hiddenPartSet = new Set(hiddenParts);
+            root.traverse((node) => {
+                if (!node.isMesh) {
+                    return;
+                }
+
+                node.visible = !hiddenPartSet.has(node.name || "");
+                if (node.morphTargetDictionary && node.morphTargetInfluences) {
+                    Object.entries(node.morphTargetDictionary).forEach(([morphName, morphIndex]) => {
+                        const savedValue = morphValues[morphName];
+                        node.morphTargetInfluences[morphIndex] = typeof savedValue === "number" ? savedValue : 0;
+                    });
+                }
+            });
+        };
+
         const stripEmbeddedDisplayBase = (root) => {
             const overallBox = new THREE.Box3().setFromObject(root);
             const overallSize = overallBox.getSize(new THREE.Vector3());
@@ -1105,7 +1124,7 @@
             slotAnchors.set(slotIndex, { anchor, pedestal, focusDisc, modelGroup });
         };
 
-        const placeModelInSlot = (root, slotIndex, renderMode) => {
+        const placeModelInSlot = (root, slotIndex, renderMode, hiddenParts, morphValues) => {
             const anchorParts = slotAnchors.get(slotIndex);
             if (!anchorParts) {
                 return;
@@ -1127,6 +1146,7 @@
             root.position.y += pedestalTop - box.min.y + 0.01;
 
             styleModelMaterials(root, renderMode);
+            applyCustomizationState(root, hiddenParts, morphValues);
             root.traverse((node) => {
                 if (node.isMesh) {
                     node.userData.roomSlotIndex = slotIndex;
@@ -1228,7 +1248,9 @@
                         placeModelInSlot(
                             gltf.scene,
                             Number(slotChip.dataset.slotIndex),
-                            slotChip.dataset.renderMode || "normal"
+                            slotChip.dataset.renderMode || "normal",
+                            JSON.parse(slotChip.dataset.hiddenParts || "[]"),
+                            JSON.parse(slotChip.dataset.morphValues || "{}")
                         );
                         resolve();
                     },

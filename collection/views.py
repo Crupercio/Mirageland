@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render
@@ -34,6 +36,13 @@ def room_detail(request):
         slot.can_unlock = can_unlock_slot(room, slot)
         slot.unlock_label = slot_unlock_label(slot)
         slot.coins_short = max(slot.unlock_cost - collector.coins, 0)
+        if slot.owned_variant:
+            customization_state = getattr(slot.owned_variant, "customization_state", None)
+            slot.hidden_parts_json = json.dumps(customization_state.hidden_parts if customization_state else [])
+            slot.morph_values_json = json.dumps(customization_state.morph_values if customization_state else {})
+        else:
+            slot.hidden_parts_json = "[]"
+            slot.morph_values_json = "{}"
 
     owned_variants = (
         OwnedVariant.objects.filter(user=collector)

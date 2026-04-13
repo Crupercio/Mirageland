@@ -339,8 +339,9 @@ Persist player-owned figurine presentation choices so a customized look follows 
 - [x] Reflect saved render mode inside the display room scene
 - [x] Scaffold hidden-part and morph-value fields for later lab editing
 - [x] Build the dedicated lab/customizer page
-- [ ] Add hide/show part controls for supported meshes
-- [ ] Add morph and expression controls for supported models
+- [x] Add hide/show part controls for supported meshes
+- [x] Add first morph controls for supported models
+- [x] Inspect animation clips for future pose or motion features
 - [ ] Support multiple saved presets per owned variant
 
 ### GitHub Checkpoint

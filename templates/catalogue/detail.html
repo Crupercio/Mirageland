@@ -40,6 +40,8 @@
                 data-variant-owned="{{ selected_variant_owned|yesno:'true,false' }}"
                 data-owned-variant-id="{% if selected_owned_variant %}{{ selected_owned_variant.id }}{% endif %}"
                 data-initial-render-mode="{{ selected_render_mode }}"
+                data-hidden-parts="{{ selected_hidden_parts_json|escapejs }}"
+                data-morph-values="{{ selected_morph_values_json|escapejs }}"
                 data-save-render-url="{% url 'catalogue:save-render-mode' %}"
                 data-scene-type="{{ selected_variant.scene_type }}"
                 data-color="{{ character.color_hex }}"
@@ -298,6 +300,8 @@
         const variantOwned = root.dataset.variantOwned === "true";
         const ownedVariantId = root.dataset.ownedVariantId || "";
         const initialRenderMode = root.dataset.initialRenderMode || "normal";
+        const hiddenParts = JSON.parse(root.dataset.hiddenParts || "[]");
+        const morphValues = JSON.parse(root.dataset.morphValues || "{}");
         const saveRenderUrl = root.dataset.saveRenderUrl || "";
         const characterSlug = root.dataset.characterSlug || "";
         const sceneType = root.dataset.sceneType || "base";
@@ -713,6 +717,23 @@
             }));
         };
 
+        const applyCustomizationState = (rootModel) => {
+            const hiddenPartSet = new Set(hiddenParts);
+            rootModel.traverse((node) => {
+                if (!node.isMesh) {
+                    return;
+                }
+
+                node.visible = !hiddenPartSet.has(node.name || "");
+                if (node.morphTargetDictionary && node.morphTargetInfluences) {
+                    Object.entries(node.morphTargetDictionary).forEach(([morphName, morphIndex]) => {
+                        const savedValue = morphValues[morphName];
+                        node.morphTargetInfluences[morphIndex] = typeof savedValue === "number" ? savedValue : 0;
+                    });
+                }
+            });
+        };
+
         const syncViewerEffects = () => {
             if (!stage) {
                 return;
@@ -1049,6 +1070,7 @@
                                 });
                             }
                         });
+                        applyCustomizationState(loadedModel);
                         frameModel(loadedModel);
                         modelAnchor.add(loadedModel);
                         resetViewer({ persist: false });

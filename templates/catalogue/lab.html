@@ -3,549 +3,591 @@
 {% block title %}Lab | Mirageland{% endblock %}
 
 {% block content %}
-<main class="grid two-col">
-    <section class="panel stack-md">
-        <span class="eyebrow">Customizer</span>
-        <h1>Figurine Lab</h1>
-        <p class="muted">Save a personal display state for each owned figurine. What you set here will carry into the character viewer and your room display.</p>
+<main class="grid lab-page">
+    <section class="panel hero-panel stack-md">
+        <div class="split lab-header">
+            <div class="stack-sm">
+                <span class="eyebrow">Customization Lab</span>
+                <h1>Figurine Lab</h1>
+                <p class="muted">Edit one owned figurine at a time. Saved changes here follow that collectible to its character page and into the display room.</p>
+            </div>
+            <div class="viewer-popover-wrap">
+                <button type="button" id="lab-info-toggle" class="icon-button" aria-label="Lab help">i</button>
+                <div id="lab-info-popover" class="viewer-popover" hidden>
+                    <div class="viewer-popover-header">
+                        <strong>Lab Guide</strong>
+                        <button type="button" id="lab-info-close" class="viewer-popover-close" aria-label="Close lab help">x</button>
+                    </div>
+                    <p class="muted">The lab reads render modes, mesh parts, morph targets, and any animation clips stored in the current GLB. Only meaningful creative controls are surfaced here.</p>
+                </div>
+            </div>
+        </div>
 
         {% if owned_variants %}
-            <div class="action-row">
-                {% if selected_character and selected_variant %}
-                    <a class="button-link" href="{% url 'catalogue:character-detail' selected_character.slug %}?variant={{ selected_variant.slug }}">Open character page</a>
-                {% endif %}
-                <a class="button-link" href="{% url 'collection:room-detail' %}">Open display room</a>
-            </div>
-
-            <div class="sub-panel stack-md">
-                <div class="split">
-                    <div>
-                        <h2 style="margin-bottom: 6px;">Owned Variants</h2>
-                        <p class="muted">Pick one owned collectible to customize.</p>
-                    </div>
-                    <span class="pill success">{{ owned_variants|length }} owned</span>
-                </div>
-                <div class="grid">
-                    {% for owned_variant in owned_variants %}
-                        <a
-                            href="{% url 'catalogue:lab' %}?owned_variant={{ owned_variant.id }}"
-                            class="sub-panel stack-sm"
-                            style="{% if selected_owned_variant and selected_owned_variant.id == owned_variant.id %}border-color: rgba(240, 163, 107, 0.58); background: linear-gradient(180deg, rgba(240, 163, 107, 0.12), rgba(255, 255, 255, 0.02));{% endif %}"
-                        >
-                            <div class="split">
-                                <div>
-                                    <strong>{{ owned_variant.variant.name }}</strong>
-                                    <p class="muted">{{ owned_variant.variant.character.name }}</p>
-                                </div>
-                                <span class="pill">{{ owned_variant.customization_state.render_mode|default:"normal"|title }}</span>
-                            </div>
-                            <p class="muted">{{ owned_variant.variant.short_description }}</p>
-                        </a>
-                    {% endfor %}
-                </div>
-            </div>
+            <form method="get" class="lab-selector-form">
+                <label class="field" for="owned_variant">
+                    <span>Active figurine</span>
+                    <select id="owned_variant" name="owned_variant" onchange="this.form.submit()">
+                        {% for owned_variant in owned_variants %}
+                            <option value="{{ owned_variant.id }}" {% if selected_owned_variant and selected_owned_variant.id == owned_variant.id %}selected{% endif %}>
+                                {{ owned_variant.variant.character.name }} · {{ owned_variant.variant.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </form>
         {% else %}
-            <div class="empty-state">Unlock a figurine first, then come back here to customize how it appears in Mirageland.</div>
+            <div class="empty-state">Unlock a figurine first, then come back here to customize it.</div>
         {% endif %}
     </section>
 
-    <section class="panel stack-md">
-        {% if selected_variant and selected_character and selected_owned_variant %}
-            <div class="split">
-                <div>
-                    <span class="eyebrow">{{ selected_character.name }}</span>
-                    <h2 style="margin-bottom: 6px;">{{ selected_variant.name }}</h2>
-                    <p class="muted">The lab currently saves render mode per owned variant. Hidden parts, morphs, and saved presets are the next upgrades.</p>
+    {% if selected_variant and selected_character and selected_owned_variant %}
+        <section class="lab-layout">
+            <section class="panel stack-md">
+                <div class="lab-viewer-topbar">
+                    <span class="pill">{{ selected_character.name }}</span>
+                    <span class="pill">{{ selected_variant.name }}</span>
+                    <span class="pill">{{ selected_variant.get_scene_type_display }}</span>
                 </div>
-                <div class="viewer-popover-wrap">
-                    <button type="button" id="lab-info-toggle" class="icon-button" aria-label="Lab help">i</button>
-                    <div id="lab-info-popover" class="viewer-popover" hidden>
-                        <div class="viewer-popover-header">
-                            <strong>Lab Controls</strong>
-                            <button type="button" id="lab-info-close" class="viewer-popover-close" aria-label="Close lab help">x</button>
-                        </div>
-                        <p class="muted">Drag to orbit, hold <strong>Shift</strong> to pan, use the mouse wheel to zoom, and save a render mode that will follow this owned figurine across the app.</p>
-                    </div>
-                </div>
-            </div>
 
-            <div
-                id="lab-viewer"
-                class="viewer-shell large"
-                data-model-url="{% url 'catalogue:model-asset' selected_variant.model_file_path %}"
-                data-owned-variant-id="{{ selected_owned_variant.id }}"
-                data-save-render-url="{% url 'catalogue:save-render-mode' %}"
-                data-reset-state-url="{% url 'catalogue:reset-display-state' %}"
-                data-initial-render-mode="{{ selected_render_mode }}"
-                data-character-color="{{ selected_character.color_hex }}"
-                data-variant-name="{{ selected_variant.name }}"
-            >
-                <div id="lab-viewer-stage" style="height: 100%; min-height: 700px; border-radius: 20px; position: relative; overflow: hidden;">
-                    <div id="lab-viewer-backdrop" aria-hidden="true"></div>
+                <div
+                    id="lab-viewer"
+                    class="viewer-shell large lab-viewer-shell"
+                    data-model-url="{% url 'catalogue:model-asset' selected_variant.model_file_path %}"
+                    data-owned-variant-id="{{ selected_owned_variant.id }}"
+                    data-save-state-url="{% url 'catalogue:save-render-mode' %}"
+                    data-reset-state-url="{% url 'catalogue:reset-display-state' %}"
+                    data-initial-render-mode="{{ selected_render_mode }}"
+                    data-hidden-parts="{{ selected_hidden_parts_json|escapejs }}"
+                    data-morph-values="{{ selected_morph_values_json|escapejs }}"
+                    data-character-color="{{ selected_character.color_hex }}"
+                >
+                    <div id="lab-viewer-stage" class="lab-viewer-stage">
+                        <div id="lab-viewer-backdrop" class="lab-viewer-backdrop"></div>
+                    </div>
+                    <div id="lab-viewer-fallback" class="muted lab-viewer-fallback">Lab viewer unavailable right now.</div>
                 </div>
-                <div id="lab-viewer-fallback" class="muted" style="position: absolute; left: 22px; bottom: 22px; max-width: 340px; display: none;">
-                    Lab viewer unavailable right now.
-                </div>
-            </div>
 
-            <div class="viewer-toolbar">
-                <div class="viewer-stats">
-                    <div class="viewer-stat">
-                        <strong>{{ selected_variant.name }}</strong>
-                        <p class="muted">Active variant</p>
+                <div class="lab-stage-footer">
+                    <div class="lab-stage-hints">
+                        <span class="pill">Drag to orbit</span>
+                        <span class="pill">Scroll to zoom</span>
+                        <span class="pill">Shift + drag to pan</span>
                     </div>
-                    <div class="viewer-stat">
-                        <strong>{{ selected_render_mode|title }}</strong>
-                        <p class="muted">Saved mode</p>
-                    </div>
-                    <div class="viewer-stat">
-                        <strong>Shared</strong>
-                        <p class="muted">Character page + room</p>
-                    </div>
-                </div>
-                <div class="viewer-actions">
-                    <div class="viewer-motion-group">
-                        <button type="button" id="lab-rotate-toggle">Rotate</button>
-                        <button type="button" id="lab-reset-camera">Reset view</button>
+                    <div class="lab-stage-actions">
+                        <button type="button" id="lab-rotate-toggle">Auto rotate</button>
+                        <button type="button" id="lab-reset-camera">Reset framing</button>
                         <button type="button" id="lab-reset-state">Reset state</button>
                     </div>
-                    <div class="viewer-mode-group viewer-controls">
-                        <button type="button" id="lab-mode-normal">Normal</button>
-                        <button type="button" id="lab-mode-unlit">Unlit</button>
-                        <button type="button" id="lab-mode-wireframe">Wireframe</button>
-                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="card-grid">
-                <div class="sub-panel stack-sm">
-                    <strong>Now saving</strong>
-                    <p class="muted">Render mode persists across login and shows the same way in the room scene.</p>
-                </div>
-                <div class="sub-panel stack-sm">
-                    <strong>Next control</strong>
-                    <p class="muted">Hide or show supported meshes like shoes, socks, bags, and other separated accessories.</p>
-                </div>
-                <div class="sub-panel stack-sm">
-                    <strong>After that</strong>
-                    <p class="muted">Morph and expression controls like blink, smile, and future saved presets.</p>
-                </div>
-            </div>
-        {% else %}
-            <div class="empty-state">No owned figurine is selected yet.</div>
-        {% endif %}
-    </section>
+            <aside class="panel stack-md lab-sidebar">
+                <section class="sub-panel stack-md">
+                    <span class="eyebrow">Render Modes</span>
+                    <h2>Look Development</h2>
+                    <div class="lab-mode-grid">
+                        <button type="button" id="lab-mode-normal" class="lab-control-button">
+                            <strong>Normal</strong>
+                            <span>PBR textures and lighting</span>
+                        </button>
+                        <button type="button" id="lab-mode-unlit" class="lab-control-button">
+                            <strong>Unlit</strong>
+                            <span>Texture only, no shading</span>
+                        </button>
+                        <button type="button" id="lab-mode-wireframe" class="lab-control-button">
+                            <strong>Wireframe</strong>
+                            <span>Topology silhouette</span>
+                        </button>
+                    </div>
+                </section>
+
+                <section class="sub-panel stack-md">
+                    <div class="split">
+                        <div>
+                            <span class="eyebrow">Inspector</span>
+                            <h2>Parts</h2>
+                        </div>
+                        <span id="lab-parts-count" class="pill">0</span>
+                    </div>
+                    <label class="field">
+                        <span>Search parts</span>
+                        <input type="text" id="lab-parts-search" placeholder="Search parts like hair, shoes, bag">
+                    </label>
+                    <div id="lab-parts-list" class="lab-list-stack">
+                        <div class="empty-state">No supported parts detected yet.</div>
+                    </div>
+                </section>
+
+                <section class="sub-panel stack-md">
+                    <div class="split">
+                        <div>
+                            <span class="eyebrow">Expressions</span>
+                            <h2>Morph Targets</h2>
+                        </div>
+                        <span id="lab-morph-count" class="pill">0</span>
+                    </div>
+                    <div id="lab-morph-list" class="lab-list-stack">
+                        <div class="empty-state">No morph targets detected in this model yet.</div>
+                    </div>
+                </section>
+
+                <section class="sub-panel stack-md">
+                    <div class="split">
+                        <div>
+                            <span class="eyebrow">Motion</span>
+                            <h2>Animation Clips</h2>
+                        </div>
+                        <span id="lab-animation-count" class="pill">0</span>
+                    </div>
+                    <div id="lab-animation-list" class="lab-list-stack">
+                        <div class="empty-state">No animation clips detected in this model yet.</div>
+                    </div>
+                </section>
+            </aside>
+        </section>
+    {% endif %}
 </main>
 
 {% if selected_variant and selected_character and selected_owned_variant %}
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
-            }
+<style>
+    .lab-layout { display:grid; gap:22px; align-items:start; }
+    .lab-viewer-topbar, .lab-stage-footer, .lab-stage-hints, .lab-stage-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    .lab-viewer-topbar { justify-content:flex-start; }
+    .lab-viewer-shell { padding: 16px; }
+    .lab-viewer-stage { min-height: 880px; height:100%; position:relative; overflow:hidden; border-radius:22px; background:linear-gradient(180deg, rgba(18,24,36,.98), rgba(15,19,30,.98)); }
+    .lab-viewer-backdrop { position:absolute; inset:0; border-radius:22px; pointer-events:none; }
+    .lab-viewer-fallback { position:absolute; left:22px; bottom:22px; max-width:340px; display:none; }
+    .lab-mode-grid { display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); }
+    .lab-control-button { display:grid; gap:6px; align-content:start; min-height:92px; padding:16px; border-radius:20px; text-align:left; }
+    .lab-control-button strong { font-size:1.03rem; }
+    .lab-control-button span { color:var(--muted); font-size:.9rem; line-height:1.35; }
+    .lab-control-button.is-active { border-color:rgba(240, 163, 107, .46); background:linear-gradient(180deg, rgba(240,163,107,.18), rgba(255,255,255,.03)); }
+    .lab-list-stack { display:grid; gap:10px; max-height:360px; overflow:auto; padding-right:4px; }
+    .lab-inspector-item, .lab-animation-row, .lab-morph-row { padding:14px 16px; border-radius:18px; border:1px solid var(--line); background:rgba(255,255,255,.03); }
+    .lab-inspector-item, .lab-animation-row { display:flex; justify-content:space-between; align-items:center; gap:14px; }
+    .lab-inspector-copy strong, .lab-inspector-copy span { display:block; }
+    .lab-inspector-copy span { color:var(--muted); font-size:.88rem; margin-top:4px; }
+    .lab-toggle-button { min-width:88px; padding-inline:12px; }
+    .lab-morph-row { display:grid; gap:10px; }
+    .lab-morph-meta { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+    .lab-morph-row input[type="range"] { width:100%; }
+    @media (min-width:1080px) { .lab-layout { grid-template-columns:minmax(0,1.35fr) minmax(320px,.75fr); } }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+const root = document.getElementById("lab-viewer");
+const stage = document.getElementById("lab-viewer-stage");
+const backdrop = document.getElementById("lab-viewer-backdrop");
+const fallback = document.getElementById("lab-viewer-fallback");
+const rotateToggle = document.getElementById("lab-rotate-toggle");
+const resetCameraButton = document.getElementById("lab-reset-camera");
+const resetStateButton = document.getElementById("lab-reset-state");
+const infoToggle = document.getElementById("lab-info-toggle");
+const infoPopover = document.getElementById("lab-info-popover");
+const infoClose = document.getElementById("lab-info-close");
+const partsSearch = document.getElementById("lab-parts-search");
+const partsList = document.getElementById("lab-parts-list");
+const partsCount = document.getElementById("lab-parts-count");
+const morphList = document.getElementById("lab-morph-list");
+const morphCount = document.getElementById("lab-morph-count");
+const animationList = document.getElementById("lab-animation-list");
+const animationCount = document.getElementById("lab-animation-count");
+const modeButtons = {
+    normal: document.getElementById("lab-mode-normal"),
+    unlit: document.getElementById("lab-mode-unlit"),
+    wireframe: document.getElementById("lab-mode-wireframe"),
+};
+
+const assetUrl = root.dataset.modelUrl;
+const ownedVariantId = root.dataset.ownedVariantId;
+const saveStateUrl = root.dataset.saveStateUrl;
+const resetStateUrl = root.dataset.resetStateUrl;
+const characterColor = root.dataset.characterColor || "#f0a36b";
+const csrfToken = "{{ csrf_token }}";
+
+let renderMode = root.dataset.initialRenderMode || "normal";
+let hiddenParts = JSON.parse(root.dataset.hiddenParts || "[]");
+let morphValues = JSON.parse(root.dataset.morphValues || "{}");
+let autoRotate = false;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let orbitYaw = 0;
+let orbitPitch = -0.08;
+let cameraDistance = 9.8;
+let cameraHeight = 1.45;
+let cameraLookY = 1.15;
+let panOffsetX = 0;
+let panOffsetY = 0;
+let defaultCameraDistance = 9.8;
+let defaultCameraHeight = 1.45;
+let defaultLookY = 1.15;
+const panSensitivity = 0.004;
+const orbitSensitivity = 0.007;
+
+const meshEntries = [];
+const availableParts = [];
+const morphRegistry = new Map();
+let animationClips = [];
+let animationMixer = null;
+let activeAction = null;
+let modelAnchor = null;
+let loadedModel = null;
+let camera = null;
+let persistTimer = null;
+
+const humanize = (value) => String(value || "").replace(/[_\-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
+const closeInfoPopover = () => { infoPopover.hidden = true; };
+const fallbackText = (message) => { fallback.style.display = "block"; fallback.textContent = message || "Lab viewer unavailable right now."; };
+const syncRotateLabel = () => { rotateToggle.textContent = autoRotate ? "Stop" : "Auto rotate"; };
+const syncModeButtons = () => Object.entries(modeButtons).forEach(([mode, button]) => button.classList.toggle("is-active", mode === renderMode));
+
+const buildUnlitMaterial = (material) => new THREE.MeshBasicMaterial({
+    color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+    map: material.map || null,
+    transparent: material.transparent || false,
+    opacity: material.opacity ?? 1,
+    side: material.side,
+    alphaTest: material.alphaTest || 0,
+});
+
+const buildWireframeMaterial = (material) => new THREE.MeshBasicMaterial({
+    color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+    map: material.map || null,
+    transparent: true,
+    opacity: 1,
+    side: THREE.DoubleSide,
+    alphaTest: material.alphaTest || 0,
+    wireframe: true,
+});
+
+const persistState = async () => {
+    const formData = new FormData();
+    formData.append("owned_variant_id", ownedVariantId);
+    formData.append("render_mode", renderMode);
+    formData.append("hidden_parts", JSON.stringify(hiddenParts));
+    formData.append("morph_values", JSON.stringify(morphValues));
+    formData.append("csrfmiddlewaretoken", csrfToken);
+    const response = await fetch(saveStateUrl, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, body: formData, credentials: "same-origin" });
+    if (!response.ok) { throw new Error("Could not save the lab state."); }
+};
+
+const schedulePersistState = () => {
+    window.clearTimeout(persistTimer);
+    persistTimer = window.setTimeout(() => { persistState().catch((error) => console.warn(error)); }, 180);
+};
+
+const resetPersistedState = async () => {
+    const formData = new FormData();
+    formData.append("owned_variant_id", ownedVariantId);
+    formData.append("next", window.location.pathname + window.location.search);
+    formData.append("csrfmiddlewaretoken", csrfToken);
+    const response = await fetch(resetStateUrl, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, body: formData, credentials: "same-origin" });
+    if (!response.ok) { throw new Error("Could not reset the lab state."); }
+};
+
+const applyRenderMode = () => {
+    meshEntries.forEach((entry) => {
+        if (renderMode === "normal") {
+            entry.mesh.material = entry.originalMaterial;
+        } else if (renderMode === "unlit") {
+            entry.mesh.material = entry.unlitMaterial;
+        } else {
+            entry.mesh.material = entry.wireframeMaterial;
         }
-    </script>
-    <script type="module">
-        import * as THREE from "three";
-        import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    });
+    syncModeButtons();
+};
 
-        const root = document.getElementById("lab-viewer");
-        const stage = document.getElementById("lab-viewer-stage");
-        const backdrop = document.getElementById("lab-viewer-backdrop");
-        const fallback = document.getElementById("lab-viewer-fallback");
-        const rotateToggle = document.getElementById("lab-rotate-toggle");
-        const resetCameraButton = document.getElementById("lab-reset-camera");
-        const resetStateButton = document.getElementById("lab-reset-state");
-        const infoToggle = document.getElementById("lab-info-toggle");
-        const infoPopover = document.getElementById("lab-info-popover");
-        const infoClose = document.getElementById("lab-info-close");
-        const modeButtons = {
-            normal: document.getElementById("lab-mode-normal"),
-            unlit: document.getElementById("lab-mode-unlit"),
-            wireframe: document.getElementById("lab-mode-wireframe"),
-        };
-
-        const assetUrl = root.dataset.modelUrl;
-        const ownedVariantId = root.dataset.ownedVariantId;
-        const saveRenderUrl = root.dataset.saveRenderUrl;
-        const resetStateUrl = root.dataset.resetStateUrl;
-        const initialRenderMode = root.dataset.initialRenderMode || "normal";
-        const characterColor = root.dataset.characterColor || "#f0a36b";
-        const variantName = root.dataset.variantName || "Variant";
-        const csrfToken = "{{ csrf_token }}";
-
-        let autoRotate = false;
-        let renderMode = initialRenderMode;
-        let isDragging = false;
-        let dragStartX = 0;
-        let dragStartY = 0;
-        let orbitYaw = 0;
-        let orbitPitch = -0.08;
-        let cameraDistance = 9.8;
-        let cameraHeight = 1.45;
-        let cameraLookY = 1.15;
-        let panOffsetX = 0;
-        let panOffsetY = 0;
-        let defaultCameraDistance = 9.8;
-        let defaultCameraHeight = 1.45;
-        let defaultLookY = 1.15;
-        const panSensitivity = 0.004;
-        const orbitSensitivity = 0.007;
-
-        const meshEntries = [];
-        let modelAnchor = null;
-        let loadedModel = null;
-        let camera = null;
-
-        const closeInfoPopover = () => {
-            infoPopover.hidden = true;
-        };
-
-        const persistRenderMode = async (mode) => {
-            const formData = new FormData();
-            formData.append("owned_variant_id", ownedVariantId);
-            formData.append("render_mode", mode);
-            formData.append("csrfmiddlewaretoken", csrfToken);
-
-            const response = await fetch(saveRenderUrl, {
-                method: "POST",
-                headers: { "X-Requested-With": "XMLHttpRequest" },
-                body: formData,
-                credentials: "same-origin",
+const applyCustomizationState = () => {
+    const hiddenPartSet = new Set(hiddenParts);
+    meshEntries.forEach((entry) => {
+        entry.mesh.visible = !hiddenPartSet.has(entry.mesh.name || "");
+        if (entry.mesh.morphTargetDictionary && entry.mesh.morphTargetInfluences) {
+            Object.entries(entry.mesh.morphTargetDictionary).forEach(([morphName, morphIndex]) => {
+                entry.mesh.morphTargetInfluences[morphIndex] = typeof morphValues[morphName] === "number" ? morphValues[morphName] : 0;
             });
+        }
+    });
+};
 
-            if (!response.ok) {
-                throw new Error("Could not save the lab state.");
-            }
-        };
+const renderPartsList = () => {
+    const query = partsSearch.value.trim().toLowerCase();
+    const matchingParts = availableParts.filter((part) => part.label.toLowerCase().includes(query));
+    partsCount.textContent = String(availableParts.length);
+    if (!matchingParts.length) {
+        partsList.innerHTML = '<div class="empty-state">No matching parts in this model.</div>';
+        return;
+    }
+    partsList.innerHTML = matchingParts.map((part) => `
+        <div class="lab-inspector-item">
+            <div class="lab-inspector-copy"><strong>${part.label}</strong><span>Mesh</span></div>
+            <button type="button" class="lab-toggle-button" data-part-toggle="${part.name}">${hiddenParts.includes(part.name) ? "Show" : "Hide"}</button>
+        </div>
+    `).join("");
+    partsList.querySelectorAll("[data-part-toggle]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const partName = button.dataset.partToggle;
+            hiddenParts = hiddenParts.includes(partName) ? hiddenParts.filter((name) => name !== partName) : [...hiddenParts, partName].sort();
+            applyCustomizationState();
+            renderPartsList();
+            schedulePersistState();
+        });
+    });
+};
 
-        const resetPersistedState = async () => {
-            const formData = new FormData();
-            formData.append("owned_variant_id", ownedVariantId);
-            formData.append("next", window.location.pathname + window.location.search);
-            formData.append("csrfmiddlewaretoken", csrfToken);
+const renderMorphList = () => {
+    const morphEntries = [...morphRegistry.keys()].sort((left, right) => left.localeCompare(right));
+    morphCount.textContent = String(morphEntries.length);
+    if (!morphEntries.length) {
+        morphList.innerHTML = '<div class="empty-state">No morph targets detected in this model yet.</div>';
+        return;
+    }
+    morphList.innerHTML = morphEntries.map((morphName) => `
+        <div class="lab-morph-row">
+            <div class="lab-morph-meta"><strong>${humanize(morphName)}</strong><span class="muted">${(morphValues[morphName] || 0).toFixed(2)}</span></div>
+            <input type="range" min="0" max="1" step="0.01" value="${morphValues[morphName] || 0}" data-morph-slider="${morphName}">
+        </div>
+    `).join("");
+    morphList.querySelectorAll("[data-morph-slider]").forEach((slider) => {
+        slider.addEventListener("input", () => {
+            const morphName = slider.dataset.morphSlider;
+            morphValues[morphName] = Number(slider.value);
+            applyCustomizationState();
+            renderMorphList();
+            schedulePersistState();
+        });
+    });
+};
 
-            const response = await fetch(resetStateUrl, {
-                method: "POST",
-                headers: { "X-Requested-With": "XMLHttpRequest" },
-                body: formData,
-                credentials: "same-origin",
-            });
+const stopAnimationPreview = () => { if (activeAction) { activeAction.stop(); activeAction = null; } };
 
-            if (!response.ok) {
-                throw new Error("Could not reset the lab state.");
-            }
-        };
+const renderAnimationList = () => {
+    animationCount.textContent = String(animationClips.length);
+    if (!animationClips.length) {
+        animationList.innerHTML = '<div class="empty-state">No animation clips detected in this model yet.</div>';
+        return;
+    }
+    animationList.innerHTML = animationClips.map((clip, index) => `
+        <div class="lab-animation-row">
+            <div class="lab-inspector-copy"><strong>${humanize(clip.name || `Clip ${index + 1}`)}</strong><span>${clip.duration.toFixed(2)}s clip</span></div>
+            <button type="button" class="lab-toggle-button" data-animation-play="${index}">Play</button>
+        </div>
+    `).join("");
+    animationList.querySelectorAll("[data-animation-play]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const clip = animationClips[Number(button.dataset.animationPlay)];
+            if (!animationMixer || !clip) { return; }
+            stopAnimationPreview();
+            activeAction = animationMixer.clipAction(clip);
+            activeAction.reset();
+            activeAction.play();
+        });
+    });
+};
 
-        const fallbackText = (message) => {
-            fallback.style.display = "block";
-            fallback.textContent = message || "Lab viewer unavailable right now.";
-        };
+const updateCamera = () => {
+    if (!camera) { return; }
+    const pitch = THREE.MathUtils.clamp(orbitPitch, -0.55, 0.55);
+    const x = Math.sin(orbitYaw) * Math.cos(pitch) * cameraDistance;
+    const y = Math.sin(pitch) * cameraDistance + cameraHeight;
+    const z = Math.cos(orbitYaw) * Math.cos(pitch) * cameraDistance;
+    camera.position.set(x + panOffsetX, y + panOffsetY, z);
+    camera.lookAt(new THREE.Vector3(panOffsetX, cameraLookY + panOffsetY, 0));
+};
 
-        const syncRotateLabel = () => {
-            rotateToggle.textContent = autoRotate ? "Stop" : "Rotate";
-        };
+const resetCamera = () => {
+    autoRotate = false;
+    orbitYaw = 0;
+    orbitPitch = -0.08;
+    cameraDistance = defaultCameraDistance;
+    cameraHeight = defaultCameraHeight;
+    cameraLookY = defaultLookY;
+    panOffsetX = 0;
+    panOffsetY = 0;
+    if (modelAnchor) { modelAnchor.rotation.set(0, 0, 0); }
+    stopAnimationPreview();
+    syncRotateLabel();
+    updateCamera();
+};
 
-        const syncModeButtons = () => {
-            Object.entries(modeButtons).forEach(([mode, button]) => {
-                button.classList.toggle("is-active", mode === renderMode);
-            });
-        };
+syncRotateLabel();
+syncModeButtons();
+infoToggle.addEventListener("click", (event) => { event.stopPropagation(); infoPopover.hidden = !infoPopover.hidden; });
+infoClose.addEventListener("click", closeInfoPopover);
+document.addEventListener("click", (event) => { if (!infoPopover.hidden && !infoPopover.contains(event.target) && event.target !== infoToggle) { closeInfoPopover(); } });
+rotateToggle.addEventListener("click", () => { autoRotate = !autoRotate; syncRotateLabel(); });
+resetCameraButton.addEventListener("click", resetCamera);
+resetStateButton.addEventListener("click", async () => {
+    try { await resetPersistedState(); } catch (error) { console.warn(error); }
+    renderMode = "normal";
+    hiddenParts = [];
+    morphValues = {};
+    applyRenderMode();
+    applyCustomizationState();
+    renderPartsList();
+    renderMorphList();
+    resetCamera();
+});
+Object.entries(modeButtons).forEach(([mode, button]) => button.addEventListener("click", () => { renderMode = mode; applyRenderMode(); schedulePersistState(); }));
+partsSearch.addEventListener("input", renderPartsList);
 
-        const buildUnlitMaterial = (material) => {
-            return new THREE.MeshBasicMaterial({
-                color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
-                map: material.map || null,
-                transparent: material.transparent || false,
-                opacity: material.opacity ?? 1,
-                side: material.side,
-                alphaTest: material.alphaTest || 0,
-            });
-        };
+try {
+    backdrop.style.background = `radial-gradient(circle at 50% 18%, ${characterColor}22, transparent 28%), radial-gradient(circle at 78% 24%, rgba(255,255,255,0.08), transparent 18%), linear-gradient(180deg, rgba(20,25,39,0.98), rgba(15,20,32,0.98))`;
 
-        const buildWireframeMaterial = (material) => {
-            return new THREE.MeshBasicMaterial({
-                color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
-                map: material.map || null,
-                transparent: true,
-                opacity: 1,
-                side: THREE.DoubleSide,
-                alphaTest: material.alphaTest || 0,
-                wireframe: true,
-            });
-        };
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setSize(stage.clientWidth || 840, stage.clientHeight || 880);
+    stage.appendChild(renderer.domElement);
 
-        const setMode = async (mode, { persist = true } = {}) => {
-            renderMode = mode;
-            syncModeButtons();
-            meshEntries.forEach((entry) => {
-                if (mode === "normal") {
-                    entry.mesh.material = entry.originalMaterial;
-                } else if (mode === "unlit") {
-                    entry.mesh.material = entry.unlitMaterial;
-                } else {
-                    entry.mesh.material = entry.wireframeMaterial;
+    const scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(25, (stage.clientWidth || 840) / (stage.clientHeight || 880), 0.1, 100);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 1.08);
+    const keyLight = new THREE.DirectionalLight(0xfff2de, 1.42);
+    keyLight.position.set(4, 6, 6);
+    const fillLight = new THREE.DirectionalLight(0xc4dfff, 0.78);
+    fillLight.position.set(-4, 3, 4);
+    const rimLight = new THREE.DirectionalLight(new THREE.Color(characterColor), 0.68);
+    rimLight.position.set(0, 4, -5);
+    scene.add(ambient, keyLight, fillLight, rimLight);
+
+    const pedestal = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.45, 1.75, 0.3, 48),
+        new THREE.MeshPhysicalMaterial({ color: "#f0ddbd", metalness: 0.05, roughness: 0.74 })
+    );
+    pedestal.position.y = -1.65;
+    scene.add(pedestal);
+
+    modelAnchor = new THREE.Group();
+    scene.add(modelAnchor);
+
+    const loader = new GLTFLoader();
+    const resize = () => {
+        const width = stage.clientWidth || 840;
+        const height = stage.clientHeight || 880;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+    };
+
+    const frameModel = (model) => {
+        const initialBox = new THREE.Box3().setFromObject(model);
+        const initialSize = initialBox.getSize(new THREE.Vector3());
+        const targetHeight = 5.1;
+        model.scale.setScalar(targetHeight / Math.max(initialSize.y, 0.01));
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const pedestalTop = pedestal.position.y + 0.22;
+        model.position.x -= center.x;
+        model.position.z -= center.z;
+        model.position.y += pedestalTop - box.min.y;
+        const framedBox = new THREE.Box3().setFromObject(model);
+        const framedSize = framedBox.getSize(new THREE.Vector3());
+        const framedCenter = framedBox.getCenter(new THREE.Vector3());
+        cameraLookY = framedCenter.y + framedSize.y * 0.08;
+        const fitHeight = framedSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+        const fitWidth = (framedSize.x / camera.aspect) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+        cameraDistance = Math.max(fitHeight, fitWidth) * 1.8 + framedSize.z * 0.65;
+        cameraHeight = cameraLookY + framedSize.y * 0.02;
+        defaultCameraDistance = cameraDistance;
+        defaultCameraHeight = cameraHeight;
+        defaultLookY = cameraLookY;
+        updateCamera();
+    };
+
+    fallbackText("Loading lab model...");
+    window.addEventListener("resize", resize);
+    resize();
+
+    stage.addEventListener("pointerdown", (event) => {
+        isDragging = true;
+        dragStartX = event.clientX;
+        dragStartY = event.clientY;
+        stage.setPointerCapture(event.pointerId);
+    });
+    stage.addEventListener("pointermove", (event) => {
+        if (!isDragging || !modelAnchor) { return; }
+        const deltaX = event.clientX - dragStartX;
+        const deltaY = event.clientY - dragStartY;
+        dragStartX = event.clientX;
+        dragStartY = event.clientY;
+        if (event.shiftKey) {
+            panOffsetX += deltaX * panSensitivity;
+            panOffsetY -= deltaY * panSensitivity;
+        } else {
+            orbitYaw += deltaX * orbitSensitivity;
+            orbitPitch -= deltaY * orbitSensitivity;
+        }
+        updateCamera();
+    });
+    const stopDrag = (event) => { if (isDragging) { isDragging = false; stage.releasePointerCapture(event.pointerId); } };
+    stage.addEventListener("pointerup", stopDrag);
+    stage.addEventListener("pointerleave", (event) => { if (isDragging) { stopDrag(event); } });
+    stage.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.008, 4.6, 17);
+        updateCamera();
+    }, { passive: false });
+
+    await new Promise((resolve, reject) => {
+        loader.load(assetUrl, (gltf) => {
+            loadedModel = gltf.scene;
+            animationClips = gltf.animations || [];
+            animationMixer = animationClips.length ? new THREE.AnimationMixer(loadedModel) : null;
+            loadedModel.traverse((node) => {
+                if (!node.isMesh) { return; }
+                const originalMaterial = node.material;
+                const unlitMaterial = Array.isArray(originalMaterial) ? originalMaterial.map((material) => buildUnlitMaterial(material)) : buildUnlitMaterial(originalMaterial);
+                const wireframeMaterial = Array.isArray(originalMaterial) ? originalMaterial.map((material) => buildWireframeMaterial(material)) : buildWireframeMaterial(originalMaterial);
+                meshEntries.push({ mesh: node, originalMaterial, unlitMaterial, wireframeMaterial });
+                if (node.name && !availableParts.some((part) => part.name === node.name)) {
+                    availableParts.push({ name: node.name, label: humanize(node.name) });
+                }
+                if (node.morphTargetDictionary) {
+                    Object.keys(node.morphTargetDictionary).forEach((morphName) => morphRegistry.set(morphName, true));
                 }
             });
-
-            if (persist) {
-                try {
-                    await persistRenderMode(mode);
-                } catch (error) {
-                    console.warn(error);
-                }
-            }
-        };
-
-        const updateCamera = () => {
-            if (!camera) {
-                return;
-            }
-            const pitch = THREE.MathUtils.clamp(orbitPitch, -0.55, 0.55);
-            const x = Math.sin(orbitYaw) * Math.cos(pitch) * cameraDistance;
-            const y = Math.sin(pitch) * cameraDistance + cameraHeight;
-            const z = Math.cos(orbitYaw) * Math.cos(pitch) * cameraDistance;
-            camera.position.set(x + panOffsetX, y + panOffsetY, z);
-            camera.lookAt(new THREE.Vector3(panOffsetX, cameraLookY + panOffsetY, 0));
-        };
-
-        const resetCamera = () => {
-            autoRotate = false;
-            orbitYaw = 0;
-            orbitPitch = -0.08;
-            cameraDistance = defaultCameraDistance;
-            cameraHeight = defaultCameraHeight;
-            cameraLookY = defaultLookY;
-            panOffsetX = 0;
-            panOffsetY = 0;
-            if (modelAnchor) {
-                modelAnchor.rotation.set(0, 0, 0);
-            }
-            syncRotateLabel();
-            updateCamera();
-        };
-
-        syncRotateLabel();
-        syncModeButtons();
-
-        infoToggle.addEventListener("click", (event) => {
-            event.stopPropagation();
-            infoPopover.hidden = !infoPopover.hidden;
-        });
-        infoClose.addEventListener("click", closeInfoPopover);
-        document.addEventListener("click", (event) => {
-            if (!infoPopover.hidden && !infoPopover.contains(event.target) && event.target !== infoToggle) {
-                closeInfoPopover();
-            }
-        });
-
-        rotateToggle.addEventListener("click", () => {
-            autoRotate = !autoRotate;
-            syncRotateLabel();
-        });
-        resetCameraButton.addEventListener("click", resetCamera);
-        resetStateButton.addEventListener("click", async () => {
-            try {
-                await resetPersistedState();
-            } catch (error) {
-                console.warn(error);
-            }
-            await setMode("normal", { persist: false });
+            availableParts.sort((left, right) => left.label.localeCompare(right.label));
+            frameModel(loadedModel);
+            modelAnchor.add(loadedModel);
+            applyRenderMode();
+            applyCustomizationState();
+            renderPartsList();
+            renderMorphList();
+            renderAnimationList();
             resetCamera();
-        });
-        Object.entries(modeButtons).forEach(([mode, button]) => {
-            button.addEventListener("click", () => {
-                setMode(mode);
-            });
-        });
+            fallback.style.display = "none";
+            resolve();
+        }, undefined, reject);
+    });
 
-        try {
-            backdrop.style.cssText = `
-                position: absolute;
-                inset: 0;
-                border-radius: 20px;
-                background:
-                    radial-gradient(circle at 50% 18%, ${characterColor}22, transparent 28%),
-                    radial-gradient(circle at 78% 24%, rgba(255,255,255,0.08), transparent 18%),
-                    linear-gradient(180deg, rgba(20, 25, 39, 0.98), rgba(15, 20, 32, 0.98));
-            `;
-
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setPixelRatio(window.devicePixelRatio || 1);
-            renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.setSize(stage.clientWidth || 840, stage.clientHeight || 700);
-            stage.appendChild(renderer.domElement);
-
-            const scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(25, (stage.clientWidth || 840) / (stage.clientHeight || 700), 0.1, 100);
-
-            const ambient = new THREE.AmbientLight(0xffffff, 1.1);
-            const keyLight = new THREE.DirectionalLight(0xfff2de, 1.42);
-            keyLight.position.set(4, 6, 6);
-            const fillLight = new THREE.DirectionalLight(0xc4dfff, 0.78);
-            fillLight.position.set(-4, 3, 4);
-            const rimLight = new THREE.DirectionalLight(new THREE.Color(characterColor), 0.68);
-            rimLight.position.set(0, 4, -5);
-            scene.add(ambient, keyLight, fillLight, rimLight);
-
-            const pedestal = new THREE.Mesh(
-                new THREE.CylinderGeometry(1.45, 1.75, 0.3, 48),
-                new THREE.MeshPhysicalMaterial({
-                    color: "#f0ddbd",
-                    metalness: 0.05,
-                    roughness: 0.74,
-                })
-            );
-            pedestal.position.y = -1.65;
-            scene.add(pedestal);
-
-            modelAnchor = new THREE.Group();
-            scene.add(modelAnchor);
-
-            const loader = new GLTFLoader();
-
-            const resize = () => {
-                const width = stage.clientWidth || 840;
-                const height = stage.clientHeight || 700;
-                camera.aspect = width / height;
-                camera.updateProjectionMatrix();
-                renderer.setSize(width, height);
-            };
-
-            const frameModel = (model) => {
-                const initialBox = new THREE.Box3().setFromObject(model);
-                const initialSize = initialBox.getSize(new THREE.Vector3());
-                const targetHeight = 5.1;
-                const scale = targetHeight / Math.max(initialSize.y, 0.01);
-                model.scale.setScalar(scale);
-
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const pedestalTop = pedestal.position.y + 0.22;
-
-                model.position.x -= center.x;
-                model.position.z -= center.z;
-                model.position.y += pedestalTop - box.min.y;
-
-                const framedBox = new THREE.Box3().setFromObject(model);
-                const framedSize = framedBox.getSize(new THREE.Vector3());
-                const framedCenter = framedBox.getCenter(new THREE.Vector3());
-                cameraLookY = framedCenter.y + framedSize.y * 0.08;
-                const fitHeight = framedSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
-                const fitWidth = (framedSize.x / camera.aspect) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
-                cameraDistance = Math.max(fitHeight, fitWidth) * 1.8 + framedSize.z * 0.65;
-                cameraHeight = cameraLookY + framedSize.y * 0.02;
-                defaultCameraDistance = cameraDistance;
-                defaultCameraHeight = cameraHeight;
-                defaultLookY = cameraLookY;
-                updateCamera();
-            };
-
-            fallbackText("Loading lab model...");
-            window.addEventListener("resize", resize);
-            resize();
-
-            stage.addEventListener("pointerdown", (event) => {
-                isDragging = true;
-                dragStartX = event.clientX;
-                dragStartY = event.clientY;
-                stage.setPointerCapture(event.pointerId);
-            });
-
-            stage.addEventListener("pointermove", (event) => {
-                if (!isDragging || !modelAnchor) {
-                    return;
-                }
-                const deltaX = event.clientX - dragStartX;
-                const deltaY = event.clientY - dragStartY;
-                dragStartX = event.clientX;
-                dragStartY = event.clientY;
-
-                if (event.shiftKey) {
-                    panOffsetX += deltaX * panSensitivity;
-                    panOffsetY -= deltaY * panSensitivity;
-                } else {
-                    orbitYaw += deltaX * orbitSensitivity;
-                    orbitPitch -= deltaY * orbitSensitivity;
-                }
-                updateCamera();
-            });
-
-            const stopDrag = (event) => {
-                if (isDragging) {
-                    isDragging = false;
-                    stage.releasePointerCapture(event.pointerId);
-                }
-            };
-
-            stage.addEventListener("pointerup", stopDrag);
-            stage.addEventListener("pointerleave", (event) => {
-                if (isDragging) {
-                    stopDrag(event);
-                }
-            });
-
-            stage.addEventListener(
-                "wheel",
-                (event) => {
-                    event.preventDefault();
-                    cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * 0.008, 4.9, 17);
-                    updateCamera();
-                },
-                { passive: false }
-            );
-
-            await new Promise((resolve, reject) => {
-                loader.load(
-                    assetUrl,
-                    (gltf) => {
-                        loadedModel = gltf.scene;
-                        loadedModel.traverse((node) => {
-                            if (node.isMesh) {
-                                const originalMaterial = node.material;
-                                const unlitMaterial = Array.isArray(originalMaterial)
-                                    ? originalMaterial.map((material) => buildUnlitMaterial(material))
-                                    : buildUnlitMaterial(originalMaterial);
-                                const wireframeMaterial = Array.isArray(originalMaterial)
-                                    ? originalMaterial.map((material) => buildWireframeMaterial(material))
-                                    : buildWireframeMaterial(originalMaterial);
-
-                                meshEntries.push({
-                                    mesh: node,
-                                    originalMaterial,
-                                    unlitMaterial,
-                                    wireframeMaterial,
-                                });
-                            }
-                        });
-                        frameModel(loadedModel);
-                        modelAnchor.add(loadedModel);
-                        resetCamera();
-                        setMode(initialRenderMode, { persist: false });
-                        fallback.style.display = "none";
-                        resolve();
-                    },
-                    undefined,
-                    reject
-                );
-            });
-
-            const clock = new THREE.Clock();
-            const animate = () => {
-                const elapsed = clock.getElapsedTime();
-                if (loadedModel && autoRotate) {
-                    orbitYaw += 0.005;
-                }
-                updateCamera();
-                renderer.render(scene, camera);
-                requestAnimationFrame(animate);
-            };
-            animate();
-        } catch (error) {
-            fallbackText("Lab viewer unavailable right now.");
-            console.warn(error);
-        }
-    </script>
+    const clock = new THREE.Clock();
+    const animate = () => {
+        const delta = clock.getDelta();
+        if (animationMixer) { animationMixer.update(delta); }
+        if (loadedModel && autoRotate) { orbitYaw += 0.005; }
+        updateCamera();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    };
+    animate();
+} catch (error) {
+    fallbackText("Lab viewer unavailable right now.");
+    console.warn(error);
+}
+</script>
 {% endif %}
 {% endblock %}

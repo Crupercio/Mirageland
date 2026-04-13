@@ -156,6 +156,26 @@ class CharacterDetailViewTests(TestCase):
         owned_variant.refresh_from_db()
         self.assertEqual(owned_variant.customization_state.render_mode, "wireframe")
 
+    def test_render_mode_save_endpoint_accepts_hidden_parts_and_morph_values(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        self.client.force_login(self.collector)
+
+        response = self.client.post(
+            "/catalogue/owned-variants/render-mode/",
+            {
+                "owned_variant_id": owned_variant.id,
+                "render_mode": "unlit",
+                "hidden_parts": '["shoe","socks"]',
+                "morph_values": '{"smile": 0.75, "blink": 0.2}',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        owned_variant.refresh_from_db()
+        self.assertEqual(owned_variant.customization_state.render_mode, "unlit")
+        self.assertEqual(owned_variant.customization_state.hidden_parts, ["shoe", "socks"])
+        self.assertEqual(owned_variant.customization_state.morph_values, {"smile": 0.75, "blink": 0.2})
+
     def test_render_mode_reset_endpoint_restores_default_state(self):
         owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
         OwnedVariantCustomization.objects.create(
