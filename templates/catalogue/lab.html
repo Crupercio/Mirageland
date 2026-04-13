@@ -67,6 +67,16 @@
                     <div id="lab-viewer-fallback" class="muted lab-viewer-fallback">Lab viewer unavailable right now.</div>
                 </div>
 
+                <form id="lab-reset-state-form" method="post" action="{% url 'catalogue:reset-display-state' %}" hidden>
+                    {% csrf_token %}
+                    <input type="hidden" name="owned_variant_id" value="{{ selected_owned_variant.id }}">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                </form>
+                <form id="lab-reset-all-states-form" method="post" action="{% url 'catalogue:reset-all-display-states' %}" hidden>
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                </form>
+
                 <div class="lab-stage-footer">
                     <div class="lab-stage-hints">
                         <span class="pill">Drag to orbit</span>
@@ -202,6 +212,8 @@ const rotateToggle = document.getElementById("lab-rotate-toggle");
 const resetCameraButton = document.getElementById("lab-reset-camera");
 const resetStateButton = document.getElementById("lab-reset-state");
 const resetAllStatesButton = document.getElementById("lab-reset-all-states");
+const resetStateForm = document.getElementById("lab-reset-state-form");
+const resetAllStatesForm = document.getElementById("lab-reset-all-states-form");
 const infoToggle = document.getElementById("lab-info-toggle");
 const infoPopover = document.getElementById("lab-info-popover");
 const infoClose = document.getElementById("lab-info-close");
@@ -221,8 +233,6 @@ const modeButtons = {
 const assetUrl = root.dataset.modelUrl;
 const ownedVariantId = root.dataset.ownedVariantId;
 const saveStateUrl = root.dataset.saveStateUrl;
-const resetStateUrl = root.dataset.resetStateUrl;
-const resetAllStatesUrl = root.dataset.resetAllStatesUrl;
 const characterColor = root.dataset.characterColor || "#f0a36b";
 const csrfToken = "{{ csrf_token }}";
 
@@ -326,33 +336,6 @@ const persistStateNow = async () => {
         persistInFlight = null;
     });
     await persistInFlight;
-};
-
-const resetPersistedState = async () => {
-    const formData = new FormData();
-    formData.append("owned_variant_id", ownedVariantId);
-    formData.append("next", window.location.pathname + window.location.search);
-    formData.append("csrfmiddlewaretoken", csrfToken);
-    const response = await fetch(resetStateUrl, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, body: formData, credentials: "same-origin" });
-    if (!response.ok) { throw new Error("Could not reset the lab state."); }
-    return response.json();
-};
-
-const resetAllPersistedStates = async () => {
-    const formData = new FormData();
-    formData.append("next", window.location.pathname + window.location.search);
-    formData.append("csrfmiddlewaretoken", csrfToken);
-    const response = await fetch(resetAllStatesUrl, {
-        method: "POST",
-        headers: { "X-Requested-With": "XMLHttpRequest" },
-        body: formData,
-        credentials: "same-origin",
-    });
-    if (!response.ok) { throw new Error("Could not reset all customization states."); }
-    isDirty = false;
-    syncSaveLabel();
-    setSaveStatus("All states reset");
-    return response.json();
 };
 
 const applyRenderMode = () => {
@@ -499,36 +482,12 @@ saveStateButton.addEventListener("click", async () => {
 rotateToggle.addEventListener("click", () => { autoRotate = !autoRotate; syncRotateLabel(); });
 resetCameraButton.addEventListener("click", resetCamera);
 resetStateButton.addEventListener("click", async () => {
-    if (persistInFlight) {
-        await persistInFlight.catch(() => undefined);
-    }
-    try {
-        setSaveStatus("Resetting...");
-        await resetPersistedState();
-    } catch (error) {
-        console.warn(error);
-        setSaveStatus("Reset failed");
-        return;
-    }
-    const resetUrl = new URL(window.location.href);
-    resetUrl.searchParams.set("lab_refresh", Date.now().toString());
-    window.location.assign(resetUrl.toString());
+    setSaveStatus("Resetting...");
+    resetStateForm.submit();
 });
 resetAllStatesButton.addEventListener("click", async () => {
-    if (persistInFlight) {
-        await persistInFlight.catch(() => undefined);
-    }
-    try {
-        setSaveStatus("Resetting all...");
-        await resetAllPersistedStates();
-    } catch (error) {
-        console.warn(error);
-        setSaveStatus("Reset failed");
-        return;
-    }
-    const resetUrl = new URL(window.location.href);
-    resetUrl.searchParams.set("lab_refresh", Date.now().toString());
-    window.location.assign(resetUrl.toString());
+    setSaveStatus("Resetting all...");
+    resetAllStatesForm.submit();
 });
 Object.entries(modeButtons).forEach(([mode, button]) => button.addEventListener("click", () => { renderMode = mode; applyRenderMode(); schedulePersistState(); }));
 partsSearch.addEventListener("input", renderPartsList);
