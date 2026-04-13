@@ -253,7 +253,6 @@ let activeAction = null;
 let modelAnchor = null;
 let loadedModel = null;
 let camera = null;
-let persistTimer = null;
 let persistInFlight = null;
 let isDirty = false;
 
@@ -306,16 +305,11 @@ const persistState = async () => {
 };
 
 const schedulePersistState = () => {
-    window.clearTimeout(persistTimer);
     isDirty = true;
     syncSaveLabel();
-    persistTimer = window.setTimeout(() => {
-        persistInFlight = persistState().catch((error) => console.warn(error)).finally(() => { persistInFlight = null; });
-    }, 180);
 };
 
 const persistStateNow = async () => {
-    window.clearTimeout(persistTimer);
     if (persistInFlight) {
         await persistInFlight.catch(() => undefined);
         return;
@@ -352,19 +346,6 @@ const resetAllPersistedStates = async () => {
     isDirty = false;
     syncSaveLabel();
     return response.json();
-};
-
-const sendStateBeacon = () => {
-    if (!isDirty || !navigator.sendBeacon) { return; }
-    const formData = new FormData();
-    formData.append("owned_variant_id", ownedVariantId);
-    formData.append("render_mode", renderMode);
-    formData.append("hidden_parts", JSON.stringify(hiddenParts));
-    formData.append("morph_values", JSON.stringify(morphValues));
-    formData.append("csrfmiddlewaretoken", csrfToken);
-    navigator.sendBeacon(saveStateUrl, formData);
-    isDirty = false;
-    syncSaveLabel();
 };
 
 const applyRenderMode = () => {
@@ -504,7 +485,6 @@ saveStateButton.addEventListener("click", async () => {
 rotateToggle.addEventListener("click", () => { autoRotate = !autoRotate; syncRotateLabel(); });
 resetCameraButton.addEventListener("click", resetCamera);
 resetStateButton.addEventListener("click", async () => {
-    window.clearTimeout(persistTimer);
     if (persistInFlight) {
         await persistInFlight.catch(() => undefined);
     }
@@ -531,7 +511,6 @@ resetStateButton.addEventListener("click", async () => {
     resetCamera();
 });
 resetAllStatesButton.addEventListener("click", async () => {
-    window.clearTimeout(persistTimer);
     if (persistInFlight) {
         await persistInFlight.catch(() => undefined);
     }
@@ -547,16 +526,12 @@ Object.entries(modeButtons).forEach(([mode, button]) => button.addEventListener(
 partsSearch.addEventListener("input", renderPartsList);
 if (ownedVariantSelect) {
     ownedVariantSelect.addEventListener("change", async () => {
-        await persistStateNow();
+        if (isDirty) {
+            await persistStateNow();
+        }
         selectorForm.submit();
     });
 }
-window.addEventListener("pagehide", sendStateBeacon);
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-        sendStateBeacon();
-    }
-});
 
 try {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
