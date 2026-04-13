@@ -201,6 +201,50 @@ def place_owned_variant(user, slot_index: int, owned_variant_id: int | None) -> 
     return room
 
 
+@transaction.atomic
+def move_room_slot_variant(user, from_slot_index: int, to_slot_index: int) -> DisplayRoom:
+    room = ensure_display_room(user)
+
+    if from_slot_index == to_slot_index:
+        return room
+
+    slots = list(
+        ShelfSlot.objects.select_for_update()
+        .filter(room=room, slot_index__in=[from_slot_index, to_slot_index])
+    )
+    if len(slots) != 2:
+        raise ValueError("Could not find both room slots.")
+
+    slot_map = {slot.slot_index: slot for slot in slots}
+    source_slot = slot_map[from_slot_index]
+    target_slot = slot_map[to_slot_index]
+
+    if not source_slot.is_unlocked or not target_slot.is_unlocked:
+        raise ValueError("Both slots must be unlocked before moving figurines.")
+
+    if source_slot.owned_variant is None:
+        raise ValueError("The source slot does not contain a figurine to move.")
+
+    source_variant = source_slot.owned_variant
+    target_variant = target_slot.owned_variant
+
+    if target_variant is not None:
+        source_slot.owned_variant = None
+        source_slot.save(update_fields=["owned_variant"])
+        target_slot.owned_variant = source_variant
+        target_slot.save(update_fields=["owned_variant"])
+        source_slot.owned_variant = target_variant
+        source_slot.save(update_fields=["owned_variant"])
+        return room
+
+    source_slot.owned_variant = target_variant
+    target_slot.owned_variant = source_variant
+
+    source_slot.save(update_fields=["owned_variant"])
+    target_slot.save(update_fields=["owned_variant"])
+    return room
+
+
 def room_has_any_placement(user) -> bool:
     return ShelfSlot.objects.filter(
         room__user=user,

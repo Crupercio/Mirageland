@@ -6,6 +6,7 @@ from catalogue.models import Character, Variant, VariantRarity, VariantSceneType
 from collection.models import OwnedVariant
 from collection.services import (
     ensure_display_room,
+    move_room_slot_variant,
     place_owned_variant,
     toggle_room_reaction,
     unlock_room_slot,
@@ -31,6 +32,15 @@ class OwnedVariantModelTests(TestCase):
             rarity=VariantRarity.STANDARD,
             short_description="Sora in the library atrium.",
             model_file_path="models/characters/sora/base.glb",
+        )
+        self.variant_two = Variant.objects.create(
+            character=self.character,
+            name="Sora School",
+            scene_type=VariantSceneType.SCHOOL,
+            unlock_order=2,
+            rarity=VariantRarity.STORY,
+            short_description="Sora in a quiet school memory.",
+            model_file_path="models/characters/sora/school.glb",
         )
 
     def test_user_cannot_own_same_variant_twice(self):
@@ -65,6 +75,32 @@ class OwnedVariantModelTests(TestCase):
 
         with self.assertRaises(ValueError):
             place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant.id)
+
+    def test_drag_move_transfers_variant_to_empty_slot(self):
+        owned_variant = OwnedVariant.objects.create(user=self.user, variant=self.variant)
+        room = ensure_display_room(self.user)
+        room.slots.filter(slot_index__in=[1, 3]).update(is_unlocked=True)
+        place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant.id)
+
+        move_room_slot_variant(self.user, from_slot_index=1, to_slot_index=3)
+
+        room.refresh_from_db()
+        self.assertIsNone(room.slots.get(slot_index=1).owned_variant)
+        self.assertEqual(room.slots.get(slot_index=3).owned_variant, owned_variant)
+
+    def test_drag_move_swaps_two_occupied_slots(self):
+        owned_variant_one = OwnedVariant.objects.create(user=self.user, variant=self.variant)
+        owned_variant_two = OwnedVariant.objects.create(user=self.user, variant=self.variant_two)
+        room = ensure_display_room(self.user)
+        room.slots.filter(slot_index__in=[1, 3]).update(is_unlocked=True)
+        place_owned_variant(self.user, slot_index=1, owned_variant_id=owned_variant_one.id)
+        place_owned_variant(self.user, slot_index=3, owned_variant_id=owned_variant_two.id)
+
+        move_room_slot_variant(self.user, from_slot_index=1, to_slot_index=3)
+
+        room.refresh_from_db()
+        self.assertEqual(room.slots.get(slot_index=1).owned_variant, owned_variant_two)
+        self.assertEqual(room.slots.get(slot_index=3).owned_variant, owned_variant_one)
 
     def test_unlock_slot_spends_coins(self):
         self.user.coins = 20

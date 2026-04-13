@@ -138,6 +138,11 @@
         </p>
 
         <div class="room-shelf-sections">
+            <form id="room-drag-move-form" method="post" action="{% url 'collection:room-move-variant' %}" hidden>
+                {% csrf_token %}
+                <input type="hidden" name="from_slot_index" id="room-drag-from-slot">
+                <input type="hidden" name="to_slot_index" id="room-drag-to-slot">
+            </form>
             {% for shelf in room_shelves %}
                 <section class="sub-panel stack-md room-shelf-section">
                     <div class="split">
@@ -150,7 +155,13 @@
 
                     <div class="room-control-grid">
                         {% for slot in shelf.slots %}
-                            <section class="sub-panel stack-sm room-slot-card {% if not slot.is_unlocked %}is-locked-slot{% endif %}">
+                            <section
+                                class="sub-panel stack-sm room-slot-card {% if not slot.is_unlocked %}is-locked-slot{% endif %}"
+                                data-room-slot-card
+                                data-slot-index="{{ slot.slot_index }}"
+                                data-slot-unlocked="{{ slot.is_unlocked|yesno:'true,false' }}"
+                                data-slot-occupied="{% if slot.is_unlocked and slot.owned_variant %}true{% else %}false{% endif %}"
+                            >
                                 <div class="split">
                                     <strong>{{ slot.slot_code|upper }}</strong>
                                     {% if slot.is_unlocked and slot.owned_variant %}
@@ -167,6 +178,14 @@
                                 {% if slot.is_unlocked %}
                                     {% if slot.owned_variant %}
                                         <p>{{ slot.owned_variant.variant.name }}</p>
+                                        <button
+                                            type="button"
+                                            class="room-drag-chip"
+                                            draggable="true"
+                                            data-drag-slot="{{ slot.slot_index }}"
+                                        >
+                                            Drag to another slot
+                                        </button>
                                     {% else %}
                                         <p class="muted">Unlocked and ready for a figurine.</p>
                                     {% endif %}
@@ -520,6 +539,12 @@
         padding: 18px;
     }
 
+    .room-slot-card.is-drop-target {
+        border-color: rgba(240, 163, 107, 0.36);
+        box-shadow: 0 0 0 1px rgba(240, 163, 107, 0.24);
+        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(240,163,107,0.05));
+    }
+
     .room-focus-button {
         width: fit-content;
         padding: 9px 14px;
@@ -539,6 +564,30 @@
         border-color: rgba(240, 163, 107, 0.32);
         background: rgba(240, 163, 107, 0.1);
         transform: translateY(-1px);
+    }
+
+    .room-drag-chip {
+        width: fit-content;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.03);
+        color: #fff6ea;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: grab;
+        transition: border-color 140ms ease, background 140ms ease;
+    }
+
+    .room-drag-chip:hover,
+    .room-drag-chip:focus-visible {
+        border-color: rgba(240, 163, 107, 0.32);
+        background: rgba(240, 163, 107, 0.08);
+    }
+
+    .room-drag-chip:active {
+        cursor: grabbing;
     }
 
     .room-slot-card.is-locked-slot {
@@ -645,6 +694,11 @@
     const roomFallback = document.getElementById("room-scene-fallback");
     const roomSceneReset = document.getElementById("room-scene-reset");
     const roomFocusButtons = [...document.querySelectorAll(".room-focus-button")];
+    const roomDragMoveForm = document.getElementById("room-drag-move-form");
+    const roomDragFromSlot = document.getElementById("room-drag-from-slot");
+    const roomDragToSlot = document.getElementById("room-drag-to-slot");
+    const roomSlotCards = [...document.querySelectorAll("[data-room-slot-card]")];
+    const roomDragChips = [...document.querySelectorAll(".room-drag-chip")];
     const slotChips = [...document.querySelectorAll(".room-scene-chip")];
     const unlockedSlots = slotChips.filter((chip) => chip.dataset.unlocked === "true");
     const occupiedSlots = unlockedSlots.filter((chip) => chip.dataset.modelUrl);
@@ -721,6 +775,54 @@
             if (!roomInfoPopover.hidden && !roomInfoPopover.contains(event.target) && event.target !== roomInfoToggle) {
                 roomInfoPopover.hidden = true;
             }
+        });
+    }
+
+    if (roomDragMoveForm && roomDragFromSlot && roomDragToSlot && roomSlotCards.length) {
+        let draggedSlotIndex = null;
+
+        roomDragChips.forEach((chip) => {
+            chip.addEventListener("dragstart", (event) => {
+                draggedSlotIndex = Number(chip.dataset.dragSlot);
+                chip.classList.add("is-dragging");
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(draggedSlotIndex));
+            });
+
+            chip.addEventListener("dragend", () => {
+                chip.classList.remove("is-dragging");
+                draggedSlotIndex = null;
+                roomSlotCards.forEach((card) => card.classList.remove("is-drop-target"));
+            });
+        });
+
+        roomSlotCards.forEach((card) => {
+            const slotIndex = Number(card.dataset.slotIndex);
+            const isUnlocked = card.dataset.slotUnlocked === "true";
+
+            card.addEventListener("dragover", (event) => {
+                if (!isUnlocked || draggedSlotIndex === null || draggedSlotIndex === slotIndex) {
+                    return;
+                }
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                card.classList.add("is-drop-target");
+            });
+
+            card.addEventListener("dragleave", () => {
+                card.classList.remove("is-drop-target");
+            });
+
+            card.addEventListener("drop", (event) => {
+                if (!isUnlocked || draggedSlotIndex === null || draggedSlotIndex === slotIndex) {
+                    return;
+                }
+                event.preventDefault();
+                card.classList.remove("is-drop-target");
+                roomDragFromSlot.value = String(draggedSlotIndex);
+                roomDragToSlot.value = String(slotIndex);
+                roomDragMoveForm.submit();
+            });
         });
     }
 

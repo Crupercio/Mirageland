@@ -9,6 +9,7 @@ from .services import (
     can_unlock_slot,
     ensure_display_room,
     get_room_slots,
+    move_room_slot_variant,
     group_slots_by_shelf,
     place_owned_variant,
     slot_unlock_label,
@@ -78,6 +79,21 @@ def room_unlock_slot(request, slot_index: int):
         unlock_room_slot(collector, slot_index=slot_index)
     except ValueError as exc:
         return HttpResponseBadRequest(str(exc))
+
+    return redirect("collection:room-detail")
+
+
+@login_required
+@require_POST
+def room_move_variant(request):
+    collector = request.user
+
+    try:
+        from_slot_index = int(request.POST.get("from_slot_index", ""))
+        to_slot_index = int(request.POST.get("to_slot_index", ""))
+        move_room_slot_variant(collector, from_slot_index=from_slot_index, to_slot_index=to_slot_index)
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest("Could not move that figurine between shelf slots.")
 
     return redirect("collection:room-detail")
 
