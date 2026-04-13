@@ -338,24 +338,21 @@ def reset_variant_customization(user, owned_variant_id: int) -> OwnedVariantCust
         id=owned_variant_id,
         user=user,
     )
-    customization_state = get_or_create_variant_customization(owned_variant)
-    customization_state.render_mode = OwnedVariantRenderMode.NORMAL
-    customization_state.hidden_parts = []
-    customization_state.morph_values = {}
-    customization_state.save(update_fields=["render_mode", "hidden_parts", "morph_values", "updated_at"])
-    return customization_state
+    OwnedVariantCustomization.objects.filter(owned_variant=owned_variant).delete()
+    return OwnedVariantCustomization(
+        owned_variant=owned_variant,
+        render_mode=OwnedVariantRenderMode.NORMAL,
+        hidden_parts=[],
+        morph_values={},
+    )
 
 
 @transaction.atomic
 def reset_all_variant_customizations(user) -> int:
-    return (
-        OwnedVariantCustomization.objects.filter(owned_variant__user=user)
-        .update(
-            render_mode=OwnedVariantRenderMode.NORMAL,
-            hidden_parts=[],
-            morph_values={},
-        )
-    )
+    deleted_count, _ = OwnedVariantCustomization.objects.filter(
+        owned_variant__user=user
+    ).delete()
+    return deleted_count
 
 
 def update_room_theme(user, theme_slug: str) -> DisplayRoom:

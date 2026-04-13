@@ -196,9 +196,9 @@ class CharacterDetailViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         owned_variant.refresh_from_db()
-        self.assertEqual(owned_variant.customization_state.render_mode, "normal")
-        self.assertEqual(owned_variant.customization_state.hidden_parts, [])
-        self.assertEqual(owned_variant.customization_state.morph_values, {})
+        self.assertFalse(
+            OwnedVariantCustomization.objects.filter(owned_variant=owned_variant).exists()
+        )
 
     def test_render_mode_reset_endpoint_returns_json_for_ajax_requests(self):
         owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
@@ -224,6 +224,9 @@ class CharacterDetailViewTests(TestCase):
         self.assertEqual(payload["render_mode"], "normal")
         self.assertEqual(payload["hidden_parts"], [])
         self.assertEqual(payload["morph_values"], {})
+        self.assertFalse(
+            OwnedVariantCustomization.objects.filter(owned_variant=owned_variant).exists()
+        )
 
     def test_lab_view_loads_saved_hidden_parts_and_morph_values(self):
         owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
@@ -259,10 +262,9 @@ class CharacterDetailViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        owned_variant.refresh_from_db()
-        self.assertEqual(owned_variant.customization_state.render_mode, "normal")
-        self.assertEqual(owned_variant.customization_state.hidden_parts, [])
-        self.assertEqual(owned_variant.customization_state.morph_values, {})
+        self.assertFalse(
+            OwnedVariantCustomization.objects.filter(owned_variant=owned_variant).exists()
+        )
 
 
 class CatalogueIndexViewTests(TestCase):
