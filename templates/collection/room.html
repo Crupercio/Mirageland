@@ -796,6 +796,7 @@
             opacity: 0.92,
         });
         const slotAnchors = new Map();
+        let focusedSlotIndex = Number(occupiedSlots[0]?.dataset.slotIndex || unlockedSlots[0]?.dataset.slotIndex || 2);
         let orbitYaw = 0;
         let orbitPitch = -0.14;
         let isDragging = false;
@@ -857,11 +858,20 @@
                 return;
             }
 
+            focusedSlotIndex = slotIndex;
             orbitYaw = 0;
             orbitPitch = slotOffset.y > 0 ? -0.1 : -0.18;
             cameraDistance = 11.2;
             panOffsetX = clampPanX(slotOffset.x * 0.96);
             panOffsetY = clampPanY(slotOffset.y > 0 ? 0.6 : -1.0);
+            slotAnchors.forEach(({ pedestal, focusDisc }, key) => {
+                const isFocused = key === slotIndex;
+                pedestal.material.emissive = new THREE.Color(isFocused ? "#f0c897" : "#000000");
+                pedestal.material.emissiveIntensity = isFocused ? 0.18 : 0;
+                if (focusDisc) {
+                    focusDisc.visible = isFocused;
+                }
+            });
             updateCamera();
         };
 
@@ -920,17 +930,29 @@
 
             const pedestal = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.5, 0.62, 0.12, 40),
-                slotChip.dataset.modelUrl ? pedestalMaterial : emptyPedestalMaterial
+                (slotChip.dataset.modelUrl ? pedestalMaterial : emptyPedestalMaterial).clone()
             );
             pedestal.position.set(0, 0.06, 0.54);
             pedestal.userData.roomSlotIndex = slotIndex;
             anchor.add(pedestal);
             interactiveSceneObjects.push(pedestal);
 
+            const focusDisc = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.68, 0.68, 0.02, 40),
+                new THREE.MeshBasicMaterial({
+                    color: "#f4d7b4",
+                    transparent: true,
+                    opacity: 0.18,
+                })
+            );
+            focusDisc.position.set(0, 0.001, 0.54);
+            focusDisc.visible = false;
+            anchor.add(focusDisc);
+
             const modelGroup = new THREE.Group();
             anchor.add(modelGroup);
             roomGroup.add(anchor);
-            slotAnchors.set(slotIndex, { anchor, pedestal, modelGroup });
+            slotAnchors.set(slotIndex, { anchor, pedestal, focusDisc, modelGroup });
         };
 
         const placeModelInSlot = (root, slotIndex, tintHex) => {
@@ -1040,6 +1062,7 @@
         }
 
         unlockedSlots.forEach((slotChip) => createShelfDisplay(slotChip));
+        focusSlotInScene(focusedSlotIndex);
         roomFocusButtons.forEach((button) => {
             button.addEventListener("click", () => {
                 focusSlotInScene(Number(button.dataset.focusSlot));
