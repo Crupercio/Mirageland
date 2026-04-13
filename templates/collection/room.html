@@ -801,6 +801,8 @@
         let isDragging = false;
         let dragStartX = 0;
         let dragStartY = 0;
+        let pointerDownX = 0;
+        let pointerDownY = 0;
         const defaultCamera = {
             orbitYaw: 0,
             orbitPitch: -0.14,
@@ -816,6 +818,10 @@
         const lookTarget = new THREE.Vector3(0, 0.55, 0.5);
         const clampPanX = (value) => THREE.MathUtils.clamp(value, -6.2, 6.2);
         const clampPanY = (value) => THREE.MathUtils.clamp(value, -2.2, 2.4);
+        const clickThreshold = 8;
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        const interactiveSceneObjects = [];
 
         const updateCamera = () => {
             const pitch = THREE.MathUtils.clamp(orbitPitch, -0.62, 0.46);
@@ -917,7 +923,9 @@
                 slotChip.dataset.modelUrl ? pedestalMaterial : emptyPedestalMaterial
             );
             pedestal.position.set(0, 0.06, 0.54);
+            pedestal.userData.roomSlotIndex = slotIndex;
             anchor.add(pedestal);
+            interactiveSceneObjects.push(pedestal);
 
             const modelGroup = new THREE.Group();
             anchor.add(modelGroup);
@@ -947,13 +955,34 @@
             root.position.y += pedestalTop - box.min.y + 0.01;
 
             styleModelMaterials(root, tintHex);
+            root.traverse((node) => {
+                if (node.isMesh) {
+                    node.userData.roomSlotIndex = slotIndex;
+                    interactiveSceneObjects.push(node);
+                }
+            });
             modelGroup.add(root);
+        };
+
+        const focusFromPointerEvent = (event) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(pointer, camera);
+
+            const hits = raycaster.intersectObjects(interactiveSceneObjects, false);
+            const hitSlotIndex = hits.find((hit) => Number.isInteger(hit.object.userData.roomSlotIndex))?.object.userData.roomSlotIndex;
+            if (Number.isInteger(hitSlotIndex)) {
+                focusSlotInScene(hitSlotIndex);
+            }
         };
 
         roomCanvas.addEventListener("pointerdown", (event) => {
             isDragging = true;
             dragStartX = event.clientX;
             dragStartY = event.clientY;
+            pointerDownX = event.clientX;
+            pointerDownY = event.clientY;
             roomCanvas.setPointerCapture(event.pointerId);
         });
 
@@ -984,6 +1013,10 @@
             }
             isDragging = false;
             roomCanvas.releasePointerCapture(event.pointerId);
+            const moveDistance = Math.hypot(event.clientX - pointerDownX, event.clientY - pointerDownY);
+            if (moveDistance <= clickThreshold) {
+                focusFromPointerEvent(event);
+            }
         };
 
         roomCanvas.addEventListener("pointerup", stopDrag);
