@@ -346,6 +346,18 @@ def reset_variant_customization(user, owned_variant_id: int) -> OwnedVariantCust
     return customization_state
 
 
+@transaction.atomic
+def reset_all_variant_customizations(user) -> int:
+    return (
+        OwnedVariantCustomization.objects.filter(owned_variant__user=user)
+        .update(
+            render_mode=OwnedVariantRenderMode.NORMAL,
+            hidden_parts=[],
+            morph_values={},
+        )
+    )
+
+
 def update_room_theme(user, theme_slug: str) -> DisplayRoom:
     if theme_slug not in ROOM_THEMES:
         raise ValueError("Unknown room theme.")

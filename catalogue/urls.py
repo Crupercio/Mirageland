@@ -5,6 +5,7 @@ from .views import (
     character_detail,
     customization_lab,
     model_asset,
+    reset_all_variant_display_states,
     reset_variant_display_state,
     save_variant_render_mode,
     viewer_plate_asset,
@@ -18,6 +19,7 @@ urlpatterns = [
     path("model-assets/<path:model_path>", model_asset, name="model-asset"),
     path("viewer-plates/<str:plate_name>", viewer_plate_asset, name="viewer-plate"),
     path("owned-variants/render-mode/", save_variant_render_mode, name="save-render-mode"),
+    path("owned-variants/reset-all-states/", reset_all_variant_display_states, name="reset-all-display-states"),
     path("owned-variants/reset-state/", reset_variant_display_state, name="reset-display-state"),
     path("characters/<slug:slug>/", character_detail, name="character-detail"),
 ]

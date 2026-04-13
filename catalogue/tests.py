@@ -242,6 +242,28 @@ class CharacterDetailViewTests(TestCase):
         self.assertContains(response, 'data-hidden-parts="[\\u0022shoe\\u0022]"')
         self.assertContains(response, 'data-morph-values="{\\u0022smile\\u0022: 0.55}"')
 
+    def test_reset_all_states_endpoint_clears_all_owned_variant_customizations(self):
+        owned_variant = OwnedVariant.objects.get(user=self.collector, variant=self.base_variant)
+        OwnedVariantCustomization.objects.create(
+            owned_variant=owned_variant,
+            render_mode=OwnedVariantRenderMode.WIREFRAME,
+            hidden_parts=["shoe"],
+            morph_values={"smile": 0.55},
+        )
+        self.client.force_login(self.collector)
+
+        response = self.client.post(
+            "/catalogue/owned-variants/reset-all-states/",
+            {"next": "/catalogue/lab/"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        owned_variant.refresh_from_db()
+        self.assertEqual(owned_variant.customization_state.render_mode, "normal")
+        self.assertEqual(owned_variant.customization_state.hidden_parts, [])
+        self.assertEqual(owned_variant.customization_state.morph_values, {})
+
 
 class CatalogueIndexViewTests(TestCase):
     def setUp(self):

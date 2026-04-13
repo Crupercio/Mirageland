@@ -9,7 +9,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from collection.models import OwnedVariant, OwnedVariantRenderMode
-from collection.services import reset_variant_customization, update_variant_customization
+from collection.services import (
+    reset_all_variant_customizations,
+    reset_variant_customization,
+    update_variant_customization,
+)
 
 from .models import Character
 
@@ -208,6 +212,18 @@ def reset_variant_display_state(request):
                 "morph_values": customization_state.morph_values,
             }
         )
+
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
+def reset_all_variant_display_states(request):
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/catalogue/lab/"
+    reset_count = reset_all_variant_customizations(request.user)
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"ok": True, "reset_count": reset_count})
 
     return redirect(next_url)
 
