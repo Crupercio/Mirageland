@@ -74,6 +74,7 @@
                         <span class="pill">Shift + drag to pan</span>
                     </div>
                     <div class="lab-stage-actions">
+                        <button type="button" id="lab-save-state">Save state</button>
                         <button type="button" id="lab-rotate-toggle">Auto rotate</button>
                         <button type="button" id="lab-reset-camera">Reset framing</button>
                         <button type="button" id="lab-reset-state">Reset state</button>
@@ -194,6 +195,7 @@ const stage = document.getElementById("lab-viewer-stage");
 const fallback = document.getElementById("lab-viewer-fallback");
 const selectorForm = document.getElementById("lab-selector-form");
 const ownedVariantSelect = document.getElementById("owned_variant");
+const saveStateButton = document.getElementById("lab-save-state");
 const rotateToggle = document.getElementById("lab-rotate-toggle");
 const resetCameraButton = document.getElementById("lab-reset-camera");
 const resetStateButton = document.getElementById("lab-reset-state");
@@ -260,6 +262,11 @@ const closeInfoPopover = () => { infoPopover.hidden = true; };
 const fallbackText = (message) => { fallback.style.display = "block"; fallback.textContent = message || "Lab viewer unavailable right now."; };
 const syncRotateLabel = () => { rotateToggle.textContent = autoRotate ? "Stop" : "Auto rotate"; };
 const syncModeButtons = () => Object.entries(modeButtons).forEach(([mode, button]) => button.classList.toggle("is-active", mode === renderMode));
+const syncSaveLabel = () => {
+    if (!saveStateButton) { return; }
+    saveStateButton.textContent = isDirty ? "Save state" : "Saved";
+    saveStateButton.disabled = !isDirty;
+};
 
 const buildUnlitMaterial = (material) => new THREE.MeshBasicMaterial({
     color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
@@ -294,12 +301,14 @@ const persistState = async () => {
     root.dataset.morphValues = JSON.stringify(payload.morph_values || {});
     root.dataset.initialRenderMode = payload.render_mode || "normal";
     isDirty = false;
+    syncSaveLabel();
     return payload;
 };
 
 const schedulePersistState = () => {
     window.clearTimeout(persistTimer);
     isDirty = true;
+    syncSaveLabel();
     persistTimer = window.setTimeout(() => {
         persistInFlight = persistState().catch((error) => console.warn(error)).finally(() => { persistInFlight = null; });
     }, 180);
@@ -341,6 +350,7 @@ const resetAllPersistedStates = async () => {
     });
     if (!response.ok) { throw new Error("Could not reset all customization states."); }
     isDirty = false;
+    syncSaveLabel();
     return response.json();
 };
 
@@ -354,6 +364,7 @@ const sendStateBeacon = () => {
     formData.append("csrfmiddlewaretoken", csrfToken);
     navigator.sendBeacon(saveStateUrl, formData);
     isDirty = false;
+    syncSaveLabel();
 };
 
 const applyRenderMode = () => {
@@ -483,13 +494,20 @@ const resetCamera = () => {
 
 syncRotateLabel();
 syncModeButtons();
+syncSaveLabel();
 infoToggle.addEventListener("click", (event) => { event.stopPropagation(); infoPopover.hidden = !infoPopover.hidden; });
 infoClose.addEventListener("click", closeInfoPopover);
 document.addEventListener("click", (event) => { if (!infoPopover.hidden && !infoPopover.contains(event.target) && event.target !== infoToggle) { closeInfoPopover(); } });
+saveStateButton.addEventListener("click", async () => {
+    await persistStateNow();
+});
 rotateToggle.addEventListener("click", () => { autoRotate = !autoRotate; syncRotateLabel(); });
 resetCameraButton.addEventListener("click", resetCamera);
 resetStateButton.addEventListener("click", async () => {
     window.clearTimeout(persistTimer);
+    if (persistInFlight) {
+        await persistInFlight.catch(() => undefined);
+    }
     try {
         const payload = await resetPersistedState();
         renderMode = payload.render_mode || "normal";
@@ -501,6 +519,11 @@ resetStateButton.addEventListener("click", async () => {
         hiddenParts = [];
         morphValues = {};
     }
+    root.dataset.hiddenParts = JSON.stringify(hiddenParts);
+    root.dataset.morphValues = JSON.stringify(morphValues);
+    root.dataset.initialRenderMode = renderMode;
+    isDirty = false;
+    syncSaveLabel();
     applyRenderMode();
     applyCustomizationState();
     renderPartsList();
@@ -509,6 +532,9 @@ resetStateButton.addEventListener("click", async () => {
 });
 resetAllStatesButton.addEventListener("click", async () => {
     window.clearTimeout(persistTimer);
+    if (persistInFlight) {
+        await persistInFlight.catch(() => undefined);
+    }
     try {
         await resetAllPersistedStates();
     } catch (error) {
