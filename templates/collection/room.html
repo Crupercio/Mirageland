@@ -977,6 +977,18 @@
             updateCamera();
         };
 
+        const scrollSceneIntoView = () => {
+            if (!roomShell) {
+                return;
+            }
+
+            const targetTop = roomShell.getBoundingClientRect().top + window.scrollY - 22;
+            window.scrollTo({
+                top: Math.max(targetTop, 0),
+                behavior: "smooth",
+            });
+        };
+
         const styleModelMaterials = (root, tintHex) => {
             root.traverse((node) => {
                 if (!node.isMesh) {
@@ -1167,6 +1179,7 @@
         focusSlotInScene(focusedSlotIndex);
         roomFocusButtons.forEach((button) => {
             button.addEventListener("click", () => {
+                scrollSceneIntoView();
                 focusSlotInScene(Number(button.dataset.focusSlot));
             });
         });
