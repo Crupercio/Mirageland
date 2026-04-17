@@ -73,6 +73,11 @@ def character_detail(request, slug):
         None,
     )
     selected_customization = getattr(selected_owned_variant, "customization_state", None)
+    selected_asset_profile = (
+        get_or_build_variant_asset_profile(selected_variant)
+        if selected_variant
+        else None
+    )
 
     context = {
         "collector": collector,
@@ -87,12 +92,26 @@ def character_detail(request, slug):
             else OwnedVariantRenderMode.NORMAL
         ),
         "selected_hidden_parts_json": json.dumps(
-            filter_hideable_parts(selected_customization.hidden_parts)
-            if selected_customization
-            else []
+            normalize_hidden_parts_for_profile(
+                (
+                    filter_hideable_parts(selected_customization.hidden_parts)
+                    if selected_customization and not selected_asset_profile.parts_schema
+                    else selected_customization.hidden_parts if selected_customization else []
+                ),
+                selected_asset_profile,
+            )
         ),
         "selected_morph_values_json": json.dumps(
-            selected_customization.morph_values if selected_customization else {}
+            normalize_morph_values_for_profile(
+                selected_customization.morph_values if selected_customization else {},
+                selected_asset_profile,
+            )
+        ),
+        "selected_parts_schema_json": json.dumps(
+            selected_asset_profile.parts_schema if selected_asset_profile else []
+        ),
+        "selected_morph_schema_json": json.dumps(
+            selected_asset_profile.morph_schema if selected_asset_profile else []
         ),
         "owned_variant_ids": owned_variant_ids,
     }

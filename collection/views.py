@@ -5,6 +5,12 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
+from catalogue.asset_profiles import (
+    get_or_build_variant_asset_profile,
+    normalize_hidden_parts_for_profile,
+    normalize_morph_values_for_profile,
+)
+
 from .models import DisplayRoom, OwnedVariant
 from .services import (
     ROOM_THEMES,
@@ -39,15 +45,30 @@ def room_detail(request):
         slot.coins_short = max(slot.unlock_cost - collector.coins, 0)
         if slot.owned_variant:
             customization_state = getattr(slot.owned_variant, "customization_state", None)
+            asset_profile = get_or_build_variant_asset_profile(slot.owned_variant.variant)
             slot.hidden_parts_json = json.dumps(
-                filter_hideable_parts(customization_state.hidden_parts)
-                if customization_state
-                else []
+                normalize_hidden_parts_for_profile(
+                    (
+                        filter_hideable_parts(customization_state.hidden_parts)
+                        if customization_state and not asset_profile.parts_schema
+                        else customization_state.hidden_parts if customization_state else []
+                    ),
+                    asset_profile,
+                )
             )
-            slot.morph_values_json = json.dumps(customization_state.morph_values if customization_state else {})
+            slot.morph_values_json = json.dumps(
+                normalize_morph_values_for_profile(
+                    customization_state.morph_values if customization_state else {},
+                    asset_profile,
+                )
+            )
+            slot.parts_schema_json = json.dumps(asset_profile.parts_schema if asset_profile else [])
+            slot.morph_schema_json = json.dumps(asset_profile.morph_schema if asset_profile else [])
         else:
             slot.hidden_parts_json = "[]"
             slot.morph_values_json = "{}"
+            slot.parts_schema_json = "[]"
+            slot.morph_schema_json = "[]"
 
     owned_variants = (
         OwnedVariant.objects.filter(user=collector)
