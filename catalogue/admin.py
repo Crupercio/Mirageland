@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Character, Variant
+from .models import Character, Variant, VariantAssetProfile
 
 
 class VariantInline(admin.TabularInline):
@@ -22,3 +22,10 @@ class VariantAdmin(admin.ModelAdmin):
     list_filter = ("scene_type", "rarity", "character")
     search_fields = ("name", "character__name", "short_description")
     prepopulated_fields = {"slug": ("name",)}
+
+
+@admin.register(VariantAssetProfile)
+class VariantAssetProfileAdmin(admin.ModelAdmin):
+    list_display = ("variant", "asset_version", "generated_at")
+    search_fields = ("variant__name", "variant__character__name")
+    readonly_fields = ("generated_at",)

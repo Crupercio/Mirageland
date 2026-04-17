@@ -75,3 +75,22 @@ class Variant(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+
+class VariantAssetProfile(models.Model):
+    variant = models.OneToOneField(
+        Variant,
+        on_delete=models.CASCADE,
+        related_name="asset_profile",
+    )
+    asset_version = models.PositiveIntegerField(default=1)
+    parts_schema = models.JSONField(default=list, blank=True)
+    morph_schema = models.JSONField(default=list, blank=True)
+    animation_schema = models.JSONField(default=list, blank=True)
+    generated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["variant__character__name", "variant__unlock_order", "variant__name"]
+
+    def __str__(self) -> str:
+        return f"{self.variant} asset profile"

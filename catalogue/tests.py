@@ -4,6 +4,7 @@ from django.test import TestCase
 from accounts.models import User
 from collection.models import OwnedVariant, OwnedVariantCustomization, OwnedVariantRenderMode
 
+from .asset_profiles import build_glb_summary, build_variant_asset_profile
 from .models import Character, Variant, VariantRarity, VariantSceneType
 
 
@@ -381,3 +382,42 @@ class CustomizationLabViewTests(TestCase):
         self.assertContains(response, "Figurine Lab")
         self.assertContains(response, "Mei Base")
         self.assertContains(response, 'data-initial-render-mode="wireframe"')
+
+
+class VariantAssetProfileTests(TestCase):
+    def setUp(self):
+        self.character = Character.objects.create(
+            name="Sora Kasumi",
+            archetype="The Scholar / Gentle Dreamer",
+            short_description="A soft-spoken archivist drawn to the Prism Effect.",
+            lore_quote="Some memories only appear when you sit with them.",
+            color_hex="#7B5EA7",
+        )
+        self.variant = Variant.objects.create(
+            character=self.character,
+            name="Sora Base",
+            scene_type=VariantSceneType.BASE,
+            unlock_order=1,
+            rarity=VariantRarity.STANDARD,
+            short_description="Sora in the library atrium.",
+            model_file_path="models/characters/sora/base/sora-base-v1.glb",
+        )
+
+    def test_build_glb_summary_extracts_parts_morphs_and_animations(self):
+        summary = build_glb_summary(self.variant.model_file_path)
+
+        self.assertGreater(len(summary.parts_schema), 0)
+        self.assertGreater(len(summary.morph_schema), 0)
+        self.assertGreater(len(summary.animation_schema), 0)
+        self.assertTrue(any(part["raw_name"] == "shoe" for part in summary.parts_schema))
+        self.assertTrue(any(morph["raw_name"] == "Blink" for morph in summary.morph_schema))
+        self.assertTrue(any(animation["clip_name"] == "KeyAction.001" for animation in summary.animation_schema))
+
+    def test_build_variant_asset_profile_persists_immutable_profile_data(self):
+        profile = build_variant_asset_profile(self.variant)
+
+        self.assertEqual(profile.variant, self.variant)
+        self.assertTrue(profile.parts_schema)
+        self.assertTrue(profile.morph_schema)
+        self.assertTrue(profile.animation_schema)
+        self.assertTrue(any(part["safe_hide"] for part in profile.parts_schema if part["raw_name"] == "shoe"))

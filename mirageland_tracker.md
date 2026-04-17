@@ -348,6 +348,27 @@ Persist player-owned figurine presentation choices so a customized look follows 
 
 Push once saved render mode survives login/logout and the same owned variant looks consistent on both the character page and in the room.
 
+## Phase 16: Asset Profile Foundation
+
+### Goal
+
+Replace fragile raw mesh-name customization with immutable per-variant asset profiles and safe player override loading.
+
+### Tasks
+
+- [x] Add a `VariantAssetProfile` model for immutable per-variant edit metadata
+- [x] Generate parts, morph, and animation schemas from current GLB assets
+- [x] Store default visibility and default morph values in the asset profile
+- [ ] Switch lab loading to `profile defaults + player overrides`
+- [ ] Validate saved hidden parts and morph values against the current profile
+- [ ] Rewrite reset behavior to reload from profile defaults after deleting overrides
+- [ ] Replace raw mesh-name lab controls with profile-backed controls and fallback labels
+- [ ] Keep animation clips visible as future pose/motion inputs
+
+### GitHub Checkpoint
+
+Push once the lab, character page, and display room all load customization from the asset profile layer instead of directly trusting raw discovered mesh names.
+
 ## Push Rules
 
 - Push after something works, not before
