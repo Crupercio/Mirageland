@@ -1,3 +1,5 @@
+import json
+
 from django.db import IntegrityError
 from django.test import TestCase
 
@@ -359,7 +361,7 @@ class CustomizationLabViewTests(TestCase):
             unlock_order=1,
             rarity=VariantRarity.STANDARD,
             short_description="Mei with warm collector energy.",
-            model_file_path="models/characters/mei/base.glb",
+            model_file_path="models/characters/mei/base/mei-base-v1.glb",
         )
         self.owned_variant = OwnedVariant.objects.create(user=self.collector, variant=self.base_variant)
 
@@ -382,6 +384,38 @@ class CustomizationLabViewTests(TestCase):
         self.assertContains(response, "Figurine Lab")
         self.assertContains(response, "Mei Base")
         self.assertContains(response, 'data-initial-render-mode="wireframe"')
+
+    def test_lab_includes_profile_backed_parts_schema(self):
+        build_variant_asset_profile(self.base_variant)
+        self.client.force_login(self.collector)
+
+        response = self.client.get("/catalogue/lab/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-parts-schema=")
+        self.assertContains(response, "Body")
+        self.assertContains(response, "Hair")
+
+    def test_render_mode_save_endpoint_accepts_profile_ids_for_parts_and_morphs(self):
+        profile = build_variant_asset_profile(self.base_variant)
+        shoe_part_id = next(part["id"] for part in profile.parts_schema if part["raw_name"] == "shoe")
+        blink_morph_id = next(morph["id"] for morph in profile.morph_schema if morph["raw_name"] == "Blink")
+        self.client.force_login(self.collector)
+
+        response = self.client.post(
+            "/catalogue/owned-variants/render-mode/",
+            {
+                "owned_variant_id": self.owned_variant.id,
+                "render_mode": "normal",
+                "hidden_parts": json.dumps([shoe_part_id]),
+                "morph_values": json.dumps({blink_morph_id: 0.42}),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.owned_variant.refresh_from_db()
+        self.assertEqual(self.owned_variant.customization_state.hidden_parts, ["shoe"])
+        self.assertEqual(self.owned_variant.customization_state.morph_values, {"Blink": 0.42})
 
 
 class VariantAssetProfileTests(TestCase):

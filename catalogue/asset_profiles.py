@@ -199,3 +199,142 @@ def build_variant_asset_profile(variant: Variant) -> VariantAssetProfile:
         },
     )
     return profile
+
+
+def get_or_build_variant_asset_profile(variant: Variant) -> VariantAssetProfile:
+    try:
+        return variant.asset_profile
+    except VariantAssetProfile.DoesNotExist:
+        try:
+            return build_variant_asset_profile(variant)
+        except (FileNotFoundError, ValueError):
+            return VariantAssetProfile(
+                variant=variant,
+                parts_schema=[],
+                morph_schema=[],
+                animation_schema=[],
+            )
+
+
+def normalize_hidden_parts_for_profile(
+    hidden_parts: list[str] | tuple[str, ...] | None,
+    profile: VariantAssetProfile | None,
+) -> list[str]:
+    if not hidden_parts:
+        return []
+    if profile is None or not profile.parts_schema:
+        return sorted({str(part).strip() for part in hidden_parts if str(part).strip()})
+
+    aliases_to_id: dict[str, str] = {}
+    for part in profile.parts_schema:
+        part_id = str(part.get("id") or "").strip()
+        if not part_id:
+            continue
+        for alias in {
+            part_id,
+            str(part.get("raw_name") or "").strip(),
+            str(part.get("mesh_name") or "").strip(),
+            str(part.get("label") or "").strip(),
+        }:
+            if alias:
+                aliases_to_id[alias] = part_id
+
+    normalized = []
+    seen: set[str] = set()
+    for value in hidden_parts:
+        key = aliases_to_id.get(str(value).strip())
+        if key and key not in seen:
+            normalized.append(key)
+            seen.add(key)
+    return normalized
+
+
+def denormalize_hidden_parts_for_profile(
+    hidden_parts: list[str] | tuple[str, ...] | None,
+    profile: VariantAssetProfile | None,
+) -> list[str]:
+    if not hidden_parts:
+        return []
+    if profile is None or not profile.parts_schema:
+        return sorted({str(part).strip() for part in hidden_parts if str(part).strip()})
+
+    parts_by_id = {
+        str(part.get("id")): part
+        for part in profile.parts_schema
+        if str(part.get("id") or "").strip()
+    }
+
+    restored = []
+    seen: set[str] = set()
+    for value in hidden_parts:
+        raw_value = str(value).strip()
+        if not raw_value:
+            continue
+        part = parts_by_id.get(raw_value)
+        resolved = str((part or {}).get("raw_name") or raw_value).strip()
+        if resolved and resolved not in seen:
+            restored.append(resolved)
+            seen.add(resolved)
+    return restored
+
+
+def normalize_morph_values_for_profile(
+    morph_values: dict[str, float] | None,
+    profile: VariantAssetProfile | None,
+) -> dict[str, float]:
+    if not morph_values:
+        return {}
+    if profile is None or not profile.morph_schema:
+        return {str(key): value for key, value in morph_values.items()}
+
+    aliases_to_id: dict[str, str] = {}
+    for morph in profile.morph_schema:
+        morph_id = str(morph.get("id") or "").strip()
+        if not morph_id:
+            continue
+        for alias in {
+            morph_id,
+            str(morph.get("raw_name") or "").strip(),
+            str(morph.get("label") or "").strip(),
+        }:
+            if alias:
+                aliases_to_id[alias] = morph_id
+
+    normalized: dict[str, float] = {}
+    for morph_name, morph_value in morph_values.items():
+        key = aliases_to_id.get(str(morph_name).strip())
+        if not key:
+            continue
+        try:
+            normalized[key] = round(float(morph_value), 4)
+        except (TypeError, ValueError):
+            continue
+    return normalized
+
+
+def denormalize_morph_values_for_profile(
+    morph_values: dict[str, float] | None,
+    profile: VariantAssetProfile | None,
+) -> dict[str, float]:
+    if not morph_values:
+        return {}
+    if profile is None or not profile.morph_schema:
+        return {str(key): value for key, value in morph_values.items()}
+
+    morphs_by_id = {
+        str(morph.get("id")): morph
+        for morph in profile.morph_schema
+        if str(morph.get("id") or "").strip()
+    }
+
+    restored: dict[str, float] = {}
+    for morph_name, morph_value in morph_values.items():
+        morph = morphs_by_id.get(str(morph_name).strip())
+        resolved = str((morph or {}).get("raw_name") or morph_name).strip()
+        if not resolved:
+            continue
+        try:
+            restored[resolved] = round(float(morph_value), 4)
+        except (TypeError, ValueError):
+            continue
+    return restored

@@ -16,6 +16,13 @@ from collection.services import (
     update_variant_customization,
 )
 
+from .asset_profiles import (
+    denormalize_hidden_parts_for_profile,
+    denormalize_morph_values_for_profile,
+    get_or_build_variant_asset_profile,
+    normalize_hidden_parts_for_profile,
+    normalize_morph_values_for_profile,
+)
 from .models import Character
 
 
@@ -118,6 +125,11 @@ def customization_lab(request):
 
     selected_character = selected_owned_variant.variant.character if selected_owned_variant else None
     selected_variant = selected_owned_variant.variant if selected_owned_variant else None
+    selected_asset_profile = (
+        get_or_build_variant_asset_profile(selected_variant)
+        if selected_variant
+        else None
+    )
     selected_customization = (
         getattr(selected_owned_variant, "customization_state", None)
         if selected_owned_variant
@@ -136,12 +148,29 @@ def customization_lab(request):
             else OwnedVariantRenderMode.NORMAL
         ),
         "selected_hidden_parts_json": json.dumps(
-            filter_hideable_parts(selected_customization.hidden_parts)
-            if selected_customization
-            else []
+            normalize_hidden_parts_for_profile(
+                (
+                    filter_hideable_parts(selected_customization.hidden_parts)
+                    if selected_customization and not selected_asset_profile.parts_schema
+                    else selected_customization.hidden_parts if selected_customization else []
+                ),
+                selected_asset_profile,
+            )
         ),
         "selected_morph_values_json": json.dumps(
-            selected_customization.morph_values if selected_customization else {}
+            normalize_morph_values_for_profile(
+                selected_customization.morph_values if selected_customization else {},
+                selected_asset_profile,
+            )
+        ),
+        "selected_parts_schema_json": json.dumps(
+            selected_asset_profile.parts_schema if selected_asset_profile else []
+        ),
+        "selected_morph_schema_json": json.dumps(
+            selected_asset_profile.morph_schema if selected_asset_profile else []
+        ),
+        "selected_animation_schema_json": json.dumps(
+            selected_asset_profile.animation_schema if selected_asset_profile else []
         ),
     }
     return render(request, "catalogue/lab.html", context)
@@ -169,9 +198,18 @@ def save_variant_render_mode(request):
             return JsonResponse({"ok": False, "error": "Morph values payload is invalid."}, status=400)
 
     try:
+        owned_variant = OwnedVariant.objects.select_related("variant").get(
+            id=int(owned_variant_id or ""),
+            user=request.user,
+        )
+        asset_profile = get_or_build_variant_asset_profile(owned_variant.variant)
+        if hidden_parts is not None:
+            hidden_parts = denormalize_hidden_parts_for_profile(hidden_parts, asset_profile)
+        if morph_values is not None:
+            morph_values = denormalize_morph_values_for_profile(morph_values, asset_profile)
         customization_state = update_variant_customization(
             request.user,
-            owned_variant_id=int(owned_variant_id or ""),
+            owned_variant_id=owned_variant.id,
             render_mode=render_mode,
             hidden_parts=hidden_parts,
             morph_values=morph_values,

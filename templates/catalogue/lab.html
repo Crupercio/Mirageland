@@ -61,6 +61,9 @@
                     data-initial-render-mode="{{ selected_render_mode }}"
                     data-hidden-parts="{{ selected_hidden_parts_json|escapejs }}"
                     data-morph-values="{{ selected_morph_values_json|escapejs }}"
+                    data-parts-schema="{{ selected_parts_schema_json|escapejs }}"
+                    data-morph-schema="{{ selected_morph_schema_json|escapejs }}"
+                    data-animation-schema="{{ selected_animation_schema_json|escapejs }}"
                     data-character-color="{{ selected_character.color_hex }}"
                 >
                     <div id="lab-viewer-stage" class="lab-viewer-stage"></div>
@@ -239,6 +242,9 @@ const csrfToken = "{{ csrf_token }}";
 let renderMode = root.dataset.initialRenderMode || "normal";
 let hiddenParts = JSON.parse(root.dataset.hiddenParts || "[]");
 let morphValues = JSON.parse(root.dataset.morphValues || "{}");
+const partsSchema = JSON.parse(root.dataset.partsSchema || "[]");
+const morphSchema = JSON.parse(root.dataset.morphSchema || "[]");
+const animationSchema = JSON.parse(root.dataset.animationSchema || "[]");
 let autoRotate = false;
 let isDragging = false;
 let dragStartX = 0;
@@ -257,8 +263,6 @@ const panSensitivity = 0.004;
 const orbitSensitivity = 0.007;
 
 const meshEntries = [];
-const availableParts = [];
-const morphRegistry = new Map();
 let animationClips = [];
 let animationMixer = null;
 let activeAction = null;
@@ -267,6 +271,8 @@ let loadedModel = null;
 let camera = null;
 let persistInFlight = null;
 let isDirty = false;
+let runtimePartEntries = [];
+let runtimeMorphEntries = [];
 
 const humanize = (value) => String(value || "").replace(/[_\-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 const closeInfoPopover = () => { infoPopover.hidden = true; };
@@ -281,6 +287,16 @@ const setSaveStatus = (message) => {
 const syncSaveLabel = () => {
     if (!saveStateButton) { return; }
     saveStateButton.textContent = "Save state";
+};
+
+const runtimeNodesForPart = (partId) => {
+    const entry = runtimePartEntries.find((item) => item.id === partId);
+    return entry ? entry.nodes : [];
+};
+
+const runtimeTargetsForMorph = (morphId) => {
+    const entry = runtimeMorphEntries.find((item) => item.id === morphId);
+    return entry ? entry.targets : [];
 };
 
 const buildUnlitMaterial = (material) => new THREE.MeshBasicMaterial({
@@ -353,34 +369,38 @@ const applyRenderMode = () => {
 
 const applyCustomizationState = () => {
     const hiddenPartSet = new Set(hiddenParts);
-    meshEntries.forEach((entry) => {
-        entry.mesh.visible = !hiddenPartSet.has(entry.mesh.name || "");
-        if (entry.mesh.morphTargetDictionary && entry.mesh.morphTargetInfluences) {
-            Object.entries(entry.mesh.morphTargetDictionary).forEach(([morphName, morphIndex]) => {
-                entry.mesh.morphTargetInfluences[morphIndex] = typeof morphValues[morphName] === "number" ? morphValues[morphName] : 0;
-            });
-        }
+    runtimePartEntries.forEach((partEntry) => {
+        const isVisible = !hiddenPartSet.has(partEntry.id);
+        partEntry.nodes.forEach((node) => {
+            node.visible = isVisible;
+        });
+    });
+    runtimeMorphEntries.forEach((morphEntry) => {
+        const value = typeof morphValues[morphEntry.id] === "number" ? morphValues[morphEntry.id] : 0;
+        morphEntry.targets.forEach(({ mesh, morphIndex }) => {
+            mesh.morphTargetInfluences[morphIndex] = value;
+        });
     });
 };
 
 const renderPartsList = () => {
     const query = partsSearch.value.trim().toLowerCase();
-    const matchingParts = availableParts.filter((part) => part.label.toLowerCase().includes(query));
-    partsCount.textContent = String(availableParts.length);
+    const matchingParts = runtimePartEntries.filter((part) => part.label.toLowerCase().includes(query));
+    partsCount.textContent = String(runtimePartEntries.length);
     if (!matchingParts.length) {
         partsList.innerHTML = '<div class="empty-state">No matching parts in this model.</div>';
         return;
     }
     partsList.innerHTML = matchingParts.map((part) => `
         <div class="lab-inspector-item">
-            <div class="lab-inspector-copy"><strong>${part.label}</strong><span>Mesh</span></div>
-            <button type="button" class="lab-toggle-button" data-part-toggle="${part.name}">${hiddenParts.includes(part.name) ? "Show" : "Hide"}</button>
+            <div class="lab-inspector-copy"><strong>${part.label}</strong><span>${humanize(part.category || "Part")}</span></div>
+            <button type="button" class="lab-toggle-button" data-part-toggle="${part.id}">${hiddenParts.includes(part.id) ? "Show" : "Hide"}</button>
         </div>
     `).join("");
     partsList.querySelectorAll("[data-part-toggle]").forEach((button) => {
         button.addEventListener("click", () => {
-            const partName = button.dataset.partToggle;
-            hiddenParts = hiddenParts.includes(partName) ? hiddenParts.filter((name) => name !== partName) : [...hiddenParts, partName].sort();
+            const partId = button.dataset.partToggle;
+            hiddenParts = hiddenParts.includes(partId) ? hiddenParts.filter((name) => name !== partId) : [...hiddenParts, partId].sort();
             applyCustomizationState();
             renderPartsList();
             schedulePersistState();
@@ -389,22 +409,21 @@ const renderPartsList = () => {
 };
 
 const renderMorphList = () => {
-    const morphEntries = [...morphRegistry.keys()].sort((left, right) => left.localeCompare(right));
-    morphCount.textContent = String(morphEntries.length);
-    if (!morphEntries.length) {
+    morphCount.textContent = String(runtimeMorphEntries.length);
+    if (!runtimeMorphEntries.length) {
         morphList.innerHTML = '<div class="empty-state">No morph targets detected in this model yet.</div>';
         return;
     }
-    morphList.innerHTML = morphEntries.map((morphName) => `
+    morphList.innerHTML = runtimeMorphEntries.map((morphEntry) => `
         <div class="lab-morph-row">
-            <div class="lab-morph-meta"><strong>${humanize(morphName)}</strong><span class="muted">${(morphValues[morphName] || 0).toFixed(2)}</span></div>
-            <input type="range" min="0" max="1" step="0.01" value="${morphValues[morphName] || 0}" data-morph-slider="${morphName}">
+            <div class="lab-morph-meta"><strong>${morphEntry.label}</strong><span class="muted">${(morphValues[morphEntry.id] || 0).toFixed(2)}</span></div>
+            <input type="range" min="${morphEntry.min ?? 0}" max="${morphEntry.max ?? 1}" step="0.01" value="${morphValues[morphEntry.id] || 0}" data-morph-slider="${morphEntry.id}">
         </div>
     `).join("");
     morphList.querySelectorAll("[data-morph-slider]").forEach((slider) => {
         slider.addEventListener("input", () => {
-            const morphName = slider.dataset.morphSlider;
-            morphValues[morphName] = Number(slider.value);
+            const morphId = slider.dataset.morphSlider;
+            morphValues[morphId] = Number(slider.value);
             applyCustomizationState();
             renderMorphList();
             schedulePersistState();
@@ -415,20 +434,21 @@ const renderMorphList = () => {
 const stopAnimationPreview = () => { if (activeAction) { activeAction.stop(); activeAction = null; } };
 
 const renderAnimationList = () => {
-    animationCount.textContent = String(animationClips.length);
-    if (!animationClips.length) {
+    animationCount.textContent = String(animationSchema.length);
+    if (!animationSchema.length) {
         animationList.innerHTML = '<div class="empty-state">No animation clips detected in this model yet.</div>';
         return;
     }
-    animationList.innerHTML = animationClips.map((clip, index) => `
+    animationList.innerHTML = animationSchema.map((clipEntry, index) => `
         <div class="lab-animation-row">
-            <div class="lab-inspector-copy"><strong>${humanize(clip.name || `Clip ${index + 1}`)}</strong><span>${clip.duration.toFixed(2)}s clip</span></div>
+            <div class="lab-inspector-copy"><strong>${clipEntry.label || humanize(clipEntry.clip_name || `Clip ${index + 1}`)}</strong><span>${clipEntry.clip_name || `clip_${index + 1}`}</span></div>
             <button type="button" class="lab-toggle-button" data-animation-play="${index}">Play</button>
         </div>
     `).join("");
     animationList.querySelectorAll("[data-animation-play]").forEach((button) => {
         button.addEventListener("click", () => {
-            const clip = animationClips[Number(button.dataset.animationPlay)];
+            const clipEntry = animationSchema[Number(button.dataset.animationPlay)];
+            const clip = animationClips.find((item) => item.name === clipEntry.clip_name);
             if (!animationMixer || !clip) { return; }
             stopAnimationPreview();
             activeAction = animationMixer.clipAction(clip);
@@ -610,17 +630,41 @@ try {
                 const unlitMaterial = Array.isArray(originalMaterial) ? originalMaterial.map((material) => buildUnlitMaterial(material)) : buildUnlitMaterial(originalMaterial);
                 const wireframeMaterial = Array.isArray(originalMaterial) ? originalMaterial.map((material) => buildWireframeMaterial(material)) : buildWireframeMaterial(originalMaterial);
                 meshEntries.push({ mesh: node, originalMaterial, unlitMaterial, wireframeMaterial });
-                const lowerName = (node.name || "").toLowerCase();
-                const hideableKeywords = ["shoe", "sock", "boot", "bag", "purse", "hat", "cap", "glass", "glasses", "ribbon", "tie", "scarf", "accessory"];
-                const isHideablePart = node.name && hideableKeywords.some((keyword) => lowerName.includes(keyword));
-                if (isHideablePart && !availableParts.some((part) => part.name === node.name)) {
-                    availableParts.push({ name: node.name, label: humanize(node.name) });
-                }
-                if (node.morphTargetDictionary) {
-                    Object.keys(node.morphTargetDictionary).forEach((morphName) => morphRegistry.set(morphName, true));
-                }
             });
-            availableParts.sort((left, right) => left.label.localeCompare(right.label));
+            runtimePartEntries = partsSchema
+                .filter((part) => part.editable !== false)
+                .map((part) => ({
+                    id: part.id,
+                    label: part.label || humanize(part.raw_name || part.id),
+                    category: part.category || "part",
+                    nodes: meshEntries
+                        .filter((entry) => {
+                            const meshName = entry.mesh.name || "";
+                            return meshName === part.raw_name || meshName === part.mesh_name;
+                        })
+                        .map((entry) => entry.mesh),
+                }))
+                .sort((left, right) => left.label.localeCompare(right.label));
+
+            runtimeMorphEntries = morphSchema
+                .filter((morph) => morph.editable !== false)
+                .map((morph) => ({
+                    id: morph.id,
+                    label: morph.label || humanize(morph.raw_name || morph.id),
+                    min: morph.min ?? 0,
+                    max: morph.max ?? 1,
+                    targets: meshEntries.flatMap((entry) => {
+                        const dictionary = entry.mesh.morphTargetDictionary || {};
+                        if (!Object.prototype.hasOwnProperty.call(dictionary, morph.raw_name)) {
+                            return [];
+                        }
+                        return [{
+                            mesh: entry.mesh,
+                            morphIndex: dictionary[morph.raw_name],
+                        }];
+                    }),
+                }))
+                .sort((left, right) => left.label.localeCompare(right.label));
             frameModel(loadedModel);
             modelAnchor.add(loadedModel);
             applyRenderMode();
